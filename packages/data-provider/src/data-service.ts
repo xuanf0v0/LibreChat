@@ -1573,6 +1573,14 @@ export function getWorkspaceEntries(path?: string | null): Promise<WorkspaceList
   return request.get(endpoints.workspaceEntries(path));
 }
 
+/** Creates one folder inside those roots and returns its (empty) listing. */
+export function createWorkspaceFolder(payload: {
+  path?: string | null;
+  name: string;
+}): Promise<WorkspaceListing> {
+  return request.post(`${endpoints.workspace()}/entries`, payload);
+}
+
 export function createSkill(payload: sk.TCreateSkill): Promise<sk.TSkill> {
   return request.post(endpoints.skills(), payload);
 }

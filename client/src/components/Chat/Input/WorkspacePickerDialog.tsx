@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSetAtom } from 'jotai';
-import { Folder, FileText, CornerLeftUp, Loader } from 'lucide-react';
+import { Folder, FolderPlus, FileText, CornerLeftUp, Loader } from 'lucide-react';
 import { OGDialog, OGDialogContent, OGDialogHeader, OGDialogTitle, Button } from '@librechat/client';
-import { useWorkspaceEntriesQuery, useWorkspaceRootsQuery } from '~/data-provider';
+import {
+  useCreateWorkspaceFolderMutation,
+  useWorkspaceEntriesQuery,
+  useWorkspaceRootsQuery,
+} from '~/data-provider';
 import { workspaceFileAtom, workspacePathAtom } from '~/store/workspace';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -30,6 +34,9 @@ export default function WorkspacePickerDialog({
   const setWorkspaceFile = useSetAtom(workspaceFileAtom);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [currentPath, setCurrentPath] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const createFolder = useCreateWorkspaceFolderMutation();
 
   const { data: rootsData, isLoading: rootsLoading } = useWorkspaceRootsQuery({ enabled: open });
   const roots = rootsData?.roots ?? [];
@@ -64,6 +71,26 @@ export default function WorkspacePickerDialog({
     },
     [onOpenChange, setWorkspaceFile, setWorkspacePath],
   );
+
+  /** Creates the folder at the browsed level, then descends into it: the reader
+   *  asked for somewhere to work, not merely for a new directory entry. */
+  const submitNewFolder = useCallback(async () => {
+    const name = newFolderName.trim();
+    if (name === '' || createFolder.isLoading) {
+      return;
+    }
+    try {
+      const created = await createFolder.mutateAsync({
+        path: listing?.path ?? currentPath,
+        name,
+      });
+      setNewFolderName('');
+      setCreating(false);
+      setCurrentPath(created.path);
+    } catch {
+      /* The listing stays put; the error code already reached the mutation. */
+    }
+  }, [createFolder, currentPath, listing?.path, newFolderName]);
 
   const chooseFile = useCallback(
     (path: string) => {
@@ -201,29 +228,86 @@ export default function WorkspacePickerDialog({
           )}
         </div>
 
-        <div className="border-border-light mt-2 flex justify-end border-t pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={listing?.path == null}
-            onClick={() => listing?.path != null && choose(listing.path)}
-          >
-            {localize('com_ui_workspace_choose_folder')}
-          </Button>
+        <div className="border-border-light mt-2 flex items-center gap-2 border-t pt-2">
+          {creating ? (
+            <>
+              <input
+                autoFocus
+                aria-label={localize('com_ui_workspace_new_folder')}
+                placeholder={localize('com_ui_workspace_new_folder')}
+                value={newFolderName}
+                onChange={(event) => setNewFolderName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void submitNewFolder();
+                  }
+                  if (event.key === 'Escape') {
+                    setCreating(false);
+                    setNewFolderName('');
+                  }
+                }}
+                className="border-border-light text-text-primary focus-visible:ring-focus-control min-w-0 flex-1 rounded-md border bg-transparent px-2 py-1 text-sm outline-hidden focus-visible:ring-2"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={createFolder.isLoading || newFolderName.trim() === ''}
+                onClick={() => void submitNewFolder()}
+              >
+                {localize('com_ui_create')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCreating(false);
+                  setNewFolderName('');
+                }}
+              >
+                {localize('com_ui_cancel')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={listing?.path == null}
+                onClick={() => setCreating(true)}
+              >
+                <FolderPlus className="me-1 h-4 w-4" aria-hidden="true" />
+                {localize('com_ui_workspace_new_folder')}
+              </Button>
+              <div className="flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={listing?.path == null}
+                onClick={() => listing?.path != null && choose(listing.path)}
+              >
+                {localize('com_ui_workspace_choose_folder')}
+              </Button>
+            </>
+          )}
         </div>
       </>
     );
   }, [
     choose,
     chooseFile,
+    createFolder.isLoading,
+    creating,
     entries,
     entriesLoading,
     error,
     listing?.parent,
     listing?.path,
     localize,
+    newFolderName,
     notConfigured,
     rootsLoading,
+    submitNewFolder,
   ]);
 
   return (

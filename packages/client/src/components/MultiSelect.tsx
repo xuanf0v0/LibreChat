@@ -10,6 +10,7 @@ import {
   SelectPopover,
   SelectProvider,
 } from '@ariakit/react';
+import { usePopoverZIndex } from './OriginalDialog';
 import './AnimatePopover.css';
 import { JSX } from 'react/jsx-runtime';
 import { cn, disabledFillClasses } from '~/utils';
@@ -112,6 +113,9 @@ export default function MultiSelect<T extends string>({
   const selectRef = useRef<HTMLButtonElement>(null);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [search, setSearch] = useState('');
+  /** Ariakit portals to body, so inside a dialog the popover's own `z-40` would
+   *  sit under the dialog's overlay and open invisibly. */
+  const popoverZIndex = usePopoverZIndex();
   const visibleItems = items.filter((item) =>
     getItemLabel(item).toLowerCase().includes(search.trim().toLowerCase()),
   );
@@ -182,6 +186,7 @@ export default function MultiSelect<T extends string>({
           modal
           unmountOnHide
           finalFocus={selectRef}
+          style={{ zIndex: popoverZIndex }}
           className={cn(
             'animate-popover z-40 flex max-h-[18.75rem]',
             'rounded-theme-menu-panel flex-col overflow-auto overscroll-contain',

@@ -2133,5 +2133,6 @@
   "com_ui_workspace_up": "上一级",
   "com_ui_workspace_loading": "加载中…",
   "com_ui_workspace_file": "文件",
-  "com_ui_workspace_folder": "文件夹"
+  "com_ui_workspace_folder": "文件夹",
+  "com_ui_workspace_new_folder": "新建文件夹"
 }

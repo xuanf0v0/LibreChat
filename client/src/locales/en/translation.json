@@ -3884,5 +3884,6 @@
   "com_ui_workspace_up": "Up one level",
   "com_ui_workspace_loading": "Loading…",
   "com_ui_workspace_file": "File",
-  "com_ui_workspace_folder": "Folder"
+  "com_ui_workspace_folder": "Folder",
+  "com_ui_workspace_new_folder": "New folder"
 }

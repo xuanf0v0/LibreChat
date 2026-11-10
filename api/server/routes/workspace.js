@@ -1,7 +1,11 @@
 const express = require('express');
-const { listWorkspaceDirectory, resolveWorkspaceRoots } = require('@librechat/api');
+const {
+  createWorkspaceDirectory,
+  listWorkspaceDirectory,
+  resolveWorkspaceRoots,
+} = require('@librechat/api');
 const { loadCustomConfig } = require('~/server/services/Config');
-const { requireJwtAuth } = require('~/server/middleware');
+const { requireJwtAuth, requireSameOrigin } = require('~/server/middleware');
 
 const router = express.Router();
 
@@ -50,6 +54,33 @@ router.get('/entries', requireJwtAuth, async (req, res) => {
   }
 
   res.json(result.value);
+});
+
+/**
+ * Creates one folder inside those roots, so a deployment whose root holds only
+ * files still offers the reader somewhere to work.
+ */
+router.post('/entries', requireJwtAuth, requireSameOrigin, async (req, res) => {
+  const roots = await rootsForRequest();
+  const parent = typeof req.body?.path === 'string' ? req.body.path : undefined;
+  const name = typeof req.body?.name === 'string' ? req.body.name : undefined;
+
+  const result = await createWorkspaceDirectory(parent, name, roots);
+  if (!result.ok) {
+    const status =
+      result.error.code === 'not_configured'
+        ? 501
+        : result.error.code === 'outside_roots' || result.error.code === 'invalid_path'
+          ? 400
+          : result.error.code === 'already_exists'
+            ? 409
+            : result.error.code === 'permission_denied'
+              ? 403
+              : 404;
+    return res.status(status).json({ error: result.error.code });
+  }
+
+  res.status(201).json(result.value);
 });
 
 module.exports = router;

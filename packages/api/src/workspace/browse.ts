@@ -48,7 +48,8 @@ export type WorkspaceErrorCode =
   | 'not_found'
   | 'not_a_directory'
   | 'permission_denied'
-  | 'invalid_path';
+  | 'invalid_path'
+  | 'already_exists';
 
 export type WorkspaceResult<T> =
   | { ok: true; value: T }
@@ -196,4 +197,60 @@ export async function listWorkspaceDirectory(
       truncated,
     },
   };
+}
+
+/** A folder name that is one path segment: no separators, no traversal. */
+function isPlainName(name: string): boolean {
+  return (
+    name !== '' &&
+    name !== '.' &&
+    name !== '..' &&
+    !name.includes('/') &&
+    !name.includes('\\') &&
+    !/[\u0000-\u001f<>:"|?*]/.test(name)
+  );
+}
+
+/**
+ * Create one folder inside the allowed roots and return its listing.
+ *
+ * The picker's roots come from the deployment's MCP server arguments, so a
+ * deployment whose root is a single empty directory would otherwise offer
+ * nothing to choose. Creating a folder is the one write this module performs;
+ * it stays inside the roots, and it never overwrites.
+ */
+export async function createWorkspaceDirectory(
+  parent: string | undefined,
+  name: string | undefined,
+  roots: readonly string[],
+): Promise<WorkspaceResult<WorkspaceListing>> {
+  if (roots.length === 0) {
+    return { ok: false, error: { code: 'not_configured' } };
+  }
+
+  const base = path.resolve(parent?.trim() ? parent : roots[0]);
+  if (!isWithinRoots(base, roots)) {
+    return { ok: false, error: { code: 'outside_roots' } };
+  }
+
+  const folder = typeof name === 'string' ? name.trim() : '';
+  if (!isPlainName(folder)) {
+    return { ok: false, error: { code: 'invalid_path' } };
+  }
+
+  const target = path.join(base, folder);
+  if (!isWithinRoots(target, roots)) {
+    return { ok: false, error: { code: 'outside_roots' } };
+  }
+
+  try {
+    await fs.mkdir(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+      return { ok: false, error: { code: 'already_exists' } };
+    }
+    return toError(error);
+  }
+
+  return listWorkspaceDirectory(target, roots);
 }

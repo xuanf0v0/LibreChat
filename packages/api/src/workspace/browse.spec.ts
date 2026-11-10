@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveWorkspaceRoots, isWithinRoots, listWorkspaceDirectory } from './browse';
+import { resolveWorkspaceRoots, isWithinRoots, listWorkspaceDirectory, createWorkspaceDirectory } from './browse';
 
 describe('resolveWorkspaceRoots', () => {
   it('reads roots after the filesystem server package name', () => {
@@ -118,5 +118,59 @@ describe('listWorkspaceDirectory', () => {
 
     const nested = await listWorkspaceDirectory(path.join(root, 'sub'), [root]);
     expect(nested.ok && nested.value.parent).toBe(path.resolve(root));
+  });
+});
+
+describe('createWorkspaceDirectory', () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), 'workspace-create-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('creates the folder and lists it', async () => {
+    const result = await createWorkspaceDirectory(root, 'notes', [root]);
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.value.path).toBe(path.join(root, 'notes'));
+    expect(result.ok && result.value.entries).toEqual([]);
+    await expect(fs.stat(path.join(root, 'notes'))).resolves.toBeTruthy();
+  });
+
+  it('refuses to overwrite an existing folder', async () => {
+    await fs.mkdir(path.join(root, 'notes'));
+
+    expect(await createWorkspaceDirectory(root, 'notes', [root])).toEqual({
+      ok: false,
+      error: { code: 'already_exists' },
+    });
+  });
+
+  it('refuses a name that escapes the parent', async () => {
+    for (const name of ['..', '../escape', 'a/b', 'a\\b', '', '  ']) {
+      expect(await createWorkspaceDirectory(root, name, [root])).toEqual({
+        ok: false,
+        error: { code: 'invalid_path' },
+      });
+    }
+    await expect(fs.stat(path.join(root, '..', 'escape'))).rejects.toBeTruthy();
+  });
+
+  it('refuses a parent outside the roots', async () => {
+    expect(await createWorkspaceDirectory(os.tmpdir(), 'x', [root])).toEqual({
+      ok: false,
+      error: { code: 'outside_roots' },
+    });
+  });
+
+  it('reports unconfigured roots distinctly', async () => {
+    expect(await createWorkspaceDirectory(root, 'x', [])).toEqual({
+      ok: false,
+      error: { code: 'not_configured' },
+    });
   });
 });

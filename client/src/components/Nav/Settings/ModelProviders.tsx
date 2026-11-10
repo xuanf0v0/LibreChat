@@ -453,6 +453,7 @@ export default function ModelProviders() {
                   showItemCheckboxes
                   disabled={busy}
                   className="w-full"
+                  selectClassName="w-full"
                 />
                 {selectedModels.length > 0 && (
                   <div className="flex flex-wrap gap-1">
