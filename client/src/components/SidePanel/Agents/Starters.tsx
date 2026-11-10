@@ -1,8 +1,9 @@
 import { Plus, X } from 'lucide-react';
 import { Constants } from 'librechat-data-provider';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Input, Label, Button, TooltipAnchor } from '@librechat/client';
+import { Input, Button, TooltipAnchor } from '@librechat/client';
 import type { AgentForm } from '~/common';
+import PanelSection from './PanelSection';
 import { useLocalize } from '~/hooks';
 
 function StartersField({
@@ -120,10 +121,10 @@ export default function Starters() {
   /** The draft is form state rather than component state: it survives switching to the
    *  Model or Advanced panel, and the reset that loads another agent clears it. */
   return (
-    <div className="mb-3 flex flex-col">
-      <Label variant="section" className="mb-1 block" htmlFor="conversation-starters">
-        {localize('com_assistants_conversation_starters')}
-      </Label>
+    <PanelSection
+      title={localize('com_assistants_conversation_starters')}
+      htmlFor="conversation-starters"
+    >
       <Controller
         name="conversation_starter_draft"
         control={control}
@@ -142,6 +143,6 @@ export default function Starters() {
           />
         )}
       />
-    </div>
+    </PanelSection>
   );
 }

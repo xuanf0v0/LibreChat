@@ -91,12 +91,11 @@ function AuthLayout({
     <div className="bg-surface-primary relative flex min-h-screen flex-col">
       <Banner />
       <BlinkAnimation active={isFetching}>
-        <div className="mt-6 h-10 w-full bg-cover">
-          <img
-            src="assets/logo.svg"
-            className="h-full w-full object-contain"
-            alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
-          />
+        <div className="mt-6 flex w-full items-center justify-center gap-3">
+          <img src="assets/fullon-mark.png" className="h-10 w-auto" alt="" aria-hidden="true" />
+          <span className="text-text-primary text-xl font-semibold">
+            {startupConfig?.appTitle ?? '源予智能体'}
+          </span>
         </div>
       </BlinkAnimation>
       <DisplayError />
@@ -104,15 +103,15 @@ function AuthLayout({
         <ThemeSelector />
       </div>
 
-      <main className="flex grow items-center justify-center">
+      <main className="flex grow items-center justify-center px-4 py-10">
         <div
           className={cn(
-            'bg-surface-primary overflow-hidden px-6 py-4 sm:rounded-lg',
+            'bg-surface-primary border-border-light overflow-hidden rounded-2xl border px-6 py-8 shadow-xs sm:px-8',
             isTwoFactorSetup ? 'w-11/12 max-w-lg' : 'w-authPageWidth sm:max-w-md',
           )}
         >
           {!hasStartupConfigError && !isFetching && header && (
-            <h1 className="text-text-primary mb-4 text-center text-3xl font-semibold select-none">
+            <h1 className="text-text-primary mb-6 text-center text-2xl font-semibold tracking-tight select-none sm:text-3xl">
               {header}
             </h1>
           )}

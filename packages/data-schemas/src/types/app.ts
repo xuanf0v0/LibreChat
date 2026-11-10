@@ -68,6 +68,9 @@ export interface AppConfig {
   summarization?: SummarizationConfig;
   /** Web search configuration */
   webSearch?: TCustomConfig['webSearch'];
+  /** Super Agent execution limits */
+  superAgent?: TCustomConfig['superAgent'];
+  trinity?: TCustomConfig['trinity'];
   githubCompare?: TCustomConfig['githubCompare'];
   /** Outbound call budgets; unset keys fall back to the server defaults */
   timeouts?: TCustomConfig['timeouts'];

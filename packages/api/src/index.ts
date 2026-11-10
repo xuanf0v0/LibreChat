@@ -12,6 +12,8 @@ export * from './artifacts';
 export * from './admin';
 export * from './cdn';
 export * from './code';
+export * from './workspace/browse';
+export * from './modelProviders';
 export * from './pulls';
 /* Auth */
 export * from './auth';
@@ -91,6 +93,8 @@ export * from './actions';
 export * from './prompts';
 /* Projects */
 export * from './projects';
+/* Super Agent */
+export * from './superagent';
 /* Conversations */
 export * from './conversations';
 /* Messages */

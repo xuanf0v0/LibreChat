@@ -21,27 +21,28 @@ import store from '~/store';
 
 function DeleteButton({
   agent_id,
+  agentName,
   setCurrentAgentId,
   createMutation,
 }: {
   agent_id: string;
+  agentName?: string | null;
   setCurrentAgentId: React.Dispatch<React.SetStateAction<string | undefined>>;
   createMutation: UseMutationResult<Agent, Error, AgentCreateParams>;
 }) {
   const localize = useLocalize();
   const { user } = useAuthContext();
   const { agentsConfig } = useGetAgentsConfig();
-  const { reset } = useFormContext();
+  /** The header action can render in isolation in tests; the app always supplies the form. */
+  const reset = useFormContext()?.reset;
   const { showToast } = useToastContext();
   const setConversation = useSetRecoilState(store.conversationByIndex(0));
   const conversationAgentId = useRecoilValue(store.conversationAgentIdByIndex(0));
 
   const deleteAgent = useDeleteAgentMutation({
     onSuccess: (_, vars, context) => {
-      const updatedList = context as Agent[] | undefined;
-      if (!updatedList) {
-        return;
-      }
+      const updatedList = Array.isArray(context) ? (context as Agent[]) : [];
+      const nextAgent = updatedList[0];
 
       showToast({
         message: localize('com_ui_agent_deleted'),
@@ -53,33 +54,27 @@ function DeleteButton({
         createMutation.reset();
       }
 
-      const firstAgent = updatedList[0] as Agent | undefined;
-      if (!firstAgent) {
-        setCurrentAgentId(undefined);
-        reset(
-          getDefaultAgentFormValues(
-            resolveStatefulCodeEnvironment(
-              user?.personalization?.statefulCodeEnvironment ?? 'user',
-              agentsConfig?.statefulCodeSessions?.allowedEnvironments,
-            ) ?? 'user',
-          ),
-        );
-        setConversation((prev) => (prev ? { ...prev, agent_id: '' } : prev));
-        return;
-      }
-
       if (vars.agent_id === conversationAgentId) {
-        setConversation((prev) => (prev ? { ...prev, model: '', agent_id: firstAgent.id } : prev));
+        setConversation((prev) =>
+          prev ? { ...prev, model: '', agent_id: nextAgent?.id ?? '' } : prev,
+        );
+      }
+
+      /* Only the agent open in the builder needs its form cleared; deleting a
+       * different agent from a future list action must not discard current edits. */
+      if (vars.agent_id !== agent_id) {
         return;
       }
 
-      const currentAgent = updatedList.find((agent) => agent.id === conversationAgentId);
-
-      if (currentAgent) {
-        setCurrentAgentId(currentAgent.id);
-      }
-
-      setCurrentAgentId(firstAgent.id);
+      reset?.(
+        getDefaultAgentFormValues(
+          resolveStatefulCodeEnvironment(
+            user?.personalization?.statefulCodeEnvironment ?? 'user',
+            agentsConfig?.statefulCodeSessions?.allowedEnvironments,
+          ) ?? 'user',
+        ),
+      );
+      setCurrentAgentId(nextAgent?.id);
     },
     onError: (error) => {
       console.error(error);
@@ -117,8 +112,13 @@ function DeleteButton({
             <div className="flex w-full flex-col items-center gap-2">
               <div className="grid w-full items-center gap-2">
                 <Label htmlFor="delete-agent" className="text-start text-sm font-medium">
-                  {localize('com_ui_delete_agent_confirm')}
+                  {agentName
+                    ? localize('com_ui_delete_agent_confirm_named', { name: agentName })
+                    : localize('com_ui_delete_agent_confirm')}
                 </Label>
+                <p className="text-text-secondary text-xs">
+                  {localize('com_ui_delete_agent_warning')}
+                </p>
               </div>
             </div>
           </>

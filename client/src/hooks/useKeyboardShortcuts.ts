@@ -872,7 +872,7 @@ export function useShortcutActions(): ShortcutAction[] {
     return true;
   }, [setShowFilesDialog]);
   const handleOpenBookmarks = useCallback(() => handleOpenPanel('bookmarks'), [handleOpenPanel]);
-  const handleOpenMCP = useCallback(() => handleOpenPanel('mcp-builder'), [handleOpenPanel]);
+  const handleOpenMCP = useCallback(() => handleOpenPanel('skill-plaza'), [handleOpenPanel]);
 
   const handlers = useMemo<Record<ShortcutActionId, () => boolean | void>>(
     () => ({

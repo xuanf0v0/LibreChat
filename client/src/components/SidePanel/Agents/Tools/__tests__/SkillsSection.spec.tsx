@@ -613,8 +613,8 @@ describe('SkillsSection Selected mode body', () => {
     renderSection([], { onAdd });
 
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByText('com_ui_skills_empty_hint')).toBeInTheDocument();
     const add = screen.getByRole('button', { name: /com_ui_skills_add_row/ });
-    expect(add).toHaveTextContent('com_ui_skills_empty_hint');
     fireEvent.click(add);
     expect(onAdd).toHaveBeenCalledTimes(1);
   });

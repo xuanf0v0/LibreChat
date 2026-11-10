@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronLeft, Check, Copy } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { Button, TooltipAnchor, labelVariants, useToastContext } from '@librechat/client';
 import type { AgentForm } from '~/common';
 import { useAgentPanelContext } from '~/Providers';
 import MaxAgentSteps from './MaxAgentSteps';
+import PanelHeader from '../PanelHeader';
 import { groupHeadingClass } from './ui';
 import AgentChain from './AgentChain';
 import { useLocalize } from '~/hooks';
@@ -34,24 +35,10 @@ export default function AdvancedPanel() {
 
   return (
     <div className="mb-1 flex w-full flex-col gap-4 text-sm">
-      <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-1">
-        <Button
-          variant="quiet"
-          size="icon"
-          onClick={() => setActivePanel(Panel.builder)}
-          aria-label={localize('com_ui_back_to_builder')}
-          className="border-border-light hover:bg-surface-secondary shrink-0 rounded-xl border"
-        >
-          <ChevronLeft className="h-5 w-5 rtl:-scale-x-100" strokeWidth={1.75} aria-hidden="true" />
-        </Button>
-        <h2 className="text-text-primary text-center text-base font-semibold">
-          {localize('com_ui_advanced_settings')}
-        </h2>
-        <span
-          aria-hidden="true"
-          className="size-theme-button min-h-theme-target min-w-theme-target"
-        />
-      </header>
+      <PanelHeader
+        title={localize('com_ui_advanced_settings')}
+        onBack={() => setActivePanel(Panel.builder)}
+      />
 
       <div className="flex flex-col gap-5 px-2 pb-2">
         <section className="flex flex-col gap-3">

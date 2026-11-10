@@ -227,6 +227,32 @@ export function detectInitialLanguage() {
   return normalizeLocale(cookieLang || storedLang || getNavigatorLanguage());
 }
 
+function isTranslationResource(value: unknown): value is TranslationResource {
+  if (typeof value !== 'object' || value == null || Array.isArray(value)) {
+    return false;
+  }
+  return Object.values(value).every((entry) => typeof entry === 'string');
+}
+
+/**
+ * Vite/rolldown emits a locale JSON chunk as a named `t` export in production
+ * while the dev loader returns the usual `default` map. Accept both shapes so a
+ * production build can actually switch locale; without this every non-English
+ * bundle adds an undefined resource and the UI stays in English.
+ */
+function localeResource(module: unknown): TranslationResource | undefined {
+  if (typeof module !== 'object' || module == null) {
+    return undefined;
+  }
+  if ('default' in module && isTranslationResource(module.default)) {
+    return module.default;
+  }
+  if ('t' in module && isTranslationResource(module.t)) {
+    return module.t;
+  }
+  return undefined;
+}
+
 export async function ensureLocale(locale?: string | null): Promise<SupportedLocale> {
   const normalized = normalizeLocale(locale);
 
@@ -247,7 +273,11 @@ export async function ensureLocale(locale?: string | null): Promise<SupportedLoc
     const loader = localeLoaders[normalized];
     loadingLocales[normalized] = loader()
       .then((module) => {
-        i18n.addResourceBundle(normalized, defaultNS, module.default, true, true);
+        const resource = localeResource(module);
+        if (resource == null) {
+          throw new Error(`Locale "${normalized}" did not export its translation map`);
+        }
+        i18n.addResourceBundle(normalized, defaultNS, resource, true, true);
         loadedLocales.add(normalized);
         return normalized;
       })

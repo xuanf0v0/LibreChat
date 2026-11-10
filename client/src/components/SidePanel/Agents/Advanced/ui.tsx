@@ -6,13 +6,15 @@ import {
   HoverCardPortal,
   HoverCardContent,
   HoverCardTrigger,
+  labelVariants,
 } from '@librechat/client';
 import type { ReactNode } from 'react';
 import { useLocalize } from '~/hooks';
 import { ESide } from '~/common';
 
-/** Prominent heading for a top-level settings group (Essentials, Orchestration). */
-export const groupHeadingClass = 'text-sm font-semibold text-text-primary';
+/** Heading for a top-level settings group (Essentials, Orchestration), in the
+ *  same eyebrow style as every other panel section. */
+export const groupHeadingClass = labelVariants({ variant: 'section' });
 
 /** Small count chip, e.g. "2 / 10". */
 export function CountPill({ children }: { children: ReactNode }) {

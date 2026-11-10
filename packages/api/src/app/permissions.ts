@@ -291,10 +291,9 @@ export async function updateInterfacePermissions({
       typeof defaults.agents === 'object' ? defaults.agents?.public : undefined;
     const skillsDefaultPublic =
       typeof defaults.skills === 'object' ? defaults.skills?.public : undefined;
-    // `schedules` is intentionally absent from the interface DEFAULTS (it is
-    // experimental/default-off at runtime), so the PERMISSION defaults are stated here.
-    // Runtime availability and the role permission are separate concerns: a user may hold
-    // the permission while the feature stays off until an admin enables it.
+    // Auto tasks ship enabled in this fork's interface defaults, so these permission
+    // defaults mirror that product default. Runtime availability and the role permission
+    // remain separate concerns: an admin may disable either one.
     const schedulesDefaultUse = true;
     const schedulesDefaultCreate = true;
     const sharedLinksDefaultCreate =

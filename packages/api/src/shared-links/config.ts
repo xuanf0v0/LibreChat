@@ -88,7 +88,7 @@ export function buildSharedLinkStartupPayload(
   env: SharedLinkStartupEnv = process.env,
 ): TSharedLinkStartupConfig {
   const payload: TSharedLinkStartupConfig = {
-    appTitle: env.APP_TITLE || 'LibreChat',
+    appTitle: env.APP_TITLE || '源予智能体',
   };
 
   if (typeof env.ANALYTICS_GTM_ID === 'string') {

@@ -139,7 +139,9 @@ export async function loadDefaultInterface({
     remoteAgents: interfaceConfig?.remoteAgents,
     skills: interfaceConfig?.skills,
     sharedLinks: interfaceConfig?.sharedLinks,
-    schedules: interfaceConfig?.schedules,
+    /** Auto tasks are a product default in this fork, so the runtime config must
+     *  inherit the schema default instead of requiring an explicit yaml entry. */
+    schedules: interfaceConfig?.schedules ?? defaults.schedules,
 
     /* Merged per field rather than taken whole, so an operator who sets one capability keeps
        the defaults for the rest instead of silently turning the others off. */

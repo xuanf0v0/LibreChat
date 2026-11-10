@@ -39,6 +39,23 @@ projects:
   # Characters of the project description shown in the workspace and sidebar (maximum 10000).
   maxDescriptionLength: 1000
 
+# Super Agent: per-user task and worker limits. Every field is optional and defaults to the
+# value shown, which is the behavior when the block is absent.
+# superAgent:
+#   maxActiveTasks: 3      # unfinished tasks per user (1 to 50)
+#   maxWorkers: 3          # concurrent workers in one task (1 to 10)
+#   maxNodes: 12           # nodes in one plan (1 to 12)
+#   defaultMaxSteps: 25    # agent recursion limit per worker (1 to 100)
+#   defaultTimeoutMs: 300000 # worker timeout in milliseconds (1000 to 600000)
+#
+# Trinity integration (optional): route Super Agent workers to a Trinity MCP instance.
+# trinity:
+#   enabled: true
+#   url: http://localhost:8000
+#   apiKey: trinity_mcp_...
+#   agentName: my-agent
+#   timeoutMs: 300000
+
 # Tool-call previews: a long conversation's tool outputs, arguments and subagent transcripts
 # can run to megabytes, though their cards render collapsed. The web client asks for bounded
 # previews when it loads a conversation (the start and end of each long output, arguments

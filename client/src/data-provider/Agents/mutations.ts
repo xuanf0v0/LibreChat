@@ -70,6 +70,17 @@ const mergeAgentListRow = (previous: t.Agent, next: t.Agent): t.Agent => {
 };
 
 /**
+ * Generate an editable draft with the user's configured model. Nothing is persisted.
+ */
+export const useGenerateAgentMutation = (): UseMutationResult<
+  t.AgentGenerateResponse,
+  Error,
+  t.AgentGenerateParams
+> => {
+  return useMutation((params: t.AgentGenerateParams) => dataService.generateAgent(params));
+};
+
+/**
  * Create a new agent
  */
 export const useCreateAgentMutation = (

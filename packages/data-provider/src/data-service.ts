@@ -163,6 +163,22 @@ export async function denyCodeSetupAttempt(attemptId: string): Promise<CodeSetup
   );
 }
 
+export function getModelProviders(): Promise<t.TModelProvidersResponse> {
+  return request.get(endpoints.modelProviders());
+}
+
+export function updateModelProviders(
+  payload: t.TModelProvidersInput,
+): Promise<t.TModelProvidersResponse> {
+  return request.put(endpoints.modelProviders(), payload);
+}
+
+export function getModelProviderModels(
+  payload: t.TModelProviderModelsInput,
+): Promise<t.TModelProviderModelsResponse> {
+  return request.post(endpoints.modelProviderModels(), payload);
+}
+
 export function getCodeEnvironments(): Promise<t.TCodeEnvironmentsResponse> {
   return request.get(endpoints.codeEnvironments());
 }
@@ -747,6 +763,10 @@ export const createAgent = ({ ...data }: ag.AgentCreateParams): Promise<ag.Agent
   return request.post(endpoints.agents({}), data);
 };
 
+export const generateAgent = (data: ag.AgentGenerateParams): Promise<ag.AgentGenerateResponse> => {
+  return request.post(endpoints.agents({ path: 'generate' }), data);
+};
+
 export const getAgentById = ({ agent_id }: { agent_id: string }): Promise<ag.Agent> => {
   return request.get(
     endpoints.agents({
@@ -1102,6 +1122,49 @@ export function updateProject(payload: t.TUpdateChatProjectRequest): Promise<t.T
 
 export function deleteProject(projectId: string): Promise<t.TDeleteChatProjectResponse> {
   return request.delete(endpoints.projectById(projectId));
+}
+
+export function createSuperAgentTask(
+  payload: t.CreateSuperAgentTaskParams,
+): Promise<t.SuperAgentTaskResponse> {
+  return request.post(endpoints.superAgentTasks(), payload);
+}
+
+export function listSuperAgentTasks(
+  limit?: number,
+): Promise<t.SuperAgentTaskListResponse> {
+  return request.get(endpoints.superAgentTasks(limit));
+}
+
+export function getSuperAgentTask(taskId: string): Promise<t.SuperAgentTaskResponse> {
+  return request.get(endpoints.superAgentTask(taskId));
+}
+
+export function cancelSuperAgentTask(taskId: string): Promise<t.SuperAgentTaskResponse> {
+  return request.post(endpoints.superAgentTaskCancel(taskId), {});
+}
+
+export function getTrinityHealth(): Promise<{
+  enabled: boolean;
+  ok: boolean;
+  message?: string;
+}> {
+  return request.get(endpoints.superAgentTrinityHealth());
+}
+
+export function listSuperAgentWorkers(): Promise<t.SuperAgentWorkerListResponse> {
+  return request.get(endpoints.superAgentWorkers());
+}
+
+export function updateSuperAgentWorker(
+  agentId: string,
+  payload: t.UpdateSuperAgentWorkerParams,
+): Promise<t.SuperAgentWorkerResponse> {
+  return request.put(endpoints.superAgentWorker(agentId), payload);
+}
+
+export function deleteSuperAgentWorker(agentId: string): Promise<t.SuperAgentWorkerResponse> {
+  return request.delete(endpoints.superAgentWorker(agentId));
 }
 
 export function getProjectFiles(projectId: string): Promise<t.TChatProjectFile[]> {
@@ -1481,6 +1544,33 @@ export function runScheduleNow(id: string): Promise<sch.TScheduleRunNowResponse>
 
 export function getSkill(id: string): Promise<sk.TSkill> {
   return request.get(endpoints.getSkill(id));
+}
+
+/** Roots the workspace picker may browse; empty when no filesystem MCP server is configured. */
+export function getWorkspaceRoots(): Promise<{ roots: string[] }> {
+  return request.get(endpoints.workspace());
+}
+
+/** One entry in a browsed directory, as the picker renders it. */
+export interface WorkspaceEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size: number | null;
+  modifiedAt: string | null;
+}
+
+/** One directory listing inside the configured roots. */
+export interface WorkspaceListing {
+  path: string;
+  parent: string | null;
+  entries: WorkspaceEntry[];
+  truncated: boolean;
+}
+
+/** One directory listing inside those roots. Omitting `path` opens the first root. */
+export function getWorkspaceEntries(path?: string | null): Promise<WorkspaceListing> {
+  return request.get(endpoints.workspaceEntries(path));
 }
 
 export function createSkill(payload: sk.TCreateSkill): Promise<sk.TSkill> {

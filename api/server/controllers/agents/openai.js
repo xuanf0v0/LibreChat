@@ -117,6 +117,16 @@ const { getMCPManager } = require('~/config');
 const { logViolation } = require('~/cache');
 const db = require('~/models');
 
+/** Super Agent tasks supply a scoped agent snapshot with a task-level tool
+ * allowlist and recursion limit. Other requests fall through to the database. */
+const getRequestAgent = (req, id) => {
+  const override = req?.agentOverride;
+  if (override != null && override.id === id) {
+    return Promise.resolve(override);
+  }
+  return db.getAgent({ id });
+};
+
 const filterFilesByRemoteAgentAccess = (params) =>
   filterFilesByAgentAccess({ ...params, resourceType: ResourceType.REMOTE_AGENT });
 
@@ -440,7 +450,7 @@ const executeOpenAIChatCompletion = async (envelope, { req, res }) => {
       return handleExecutionError({ error, res, context, appConfig });
     },
     execute: async (execution) => {
-      const agentPromise = db.getAgent({ id: agentId });
+      const agentPromise = getRequestAgent(req, agentId);
       // Validation may return before this promise is awaited; preserve the original
       // promise for the later await while avoiding an unhandled speculative rejection.
       agentPromise.catch(() => {});
@@ -749,7 +759,7 @@ const executeOpenAIChatCompletion = async (envelope, { req, res }) => {
           memoryAvailable,
         };
         const discoveryDeps = {
-          getAgent: db.getAgent,
+          getAgent: (params) => getRequestAgent(req, params.id),
           checkPermission: async ({ userId, role, resourceId, requiredPermission }) => {
             const permissions = await getRemoteAgentPermissions(
               { getEffectivePermissions },
@@ -910,11 +920,22 @@ const executeOpenAIChatCompletion = async (envelope, { req, res }) => {
             actionsEnabled: ctx.actionsEnabled,
             accessibleMcpServerNames: ctx.accessibleMcpServerNames,
           });
-          return enrichLoadedToolsWithAgentContext({
+          const loaded = await enrichLoadedToolsWithAgentContext({
             result,
             req,
             ctx,
           });
+          const allowedTools = req.superAgentAllowedTools;
+          if (!Array.isArray(allowedTools)) {
+            return loaded;
+          }
+          const allowed = new Set(allowedTools);
+          return {
+            ...loaded,
+            loadedTools: loaded.loadedTools.filter(
+              (tool) => typeof tool?.name === 'string' && allowed.has(tool.name),
+            ),
+          };
         },
         toolEndCallback,
         ...getSkillToolDeps(),

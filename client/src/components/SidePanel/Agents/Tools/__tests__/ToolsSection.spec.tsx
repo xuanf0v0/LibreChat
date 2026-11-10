@@ -114,6 +114,13 @@ jest.mock('@librechat/client', () => ({
     </button>
   ),
   Label: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+  labelVariants: () => '',
+  EmptyState: ({ title, description }: { title?: string; description?: string }) => (
+    <div>
+      {title != null && <p>{title}</p>}
+      {description != null && <p>{description}</p>}
+    </div>
+  ),
   OGDialog: ({ open, children }: { open?: boolean; children?: React.ReactNode }) =>
     open ? <div>{children}</div> : null,
   OGDialogTemplate: () => null,

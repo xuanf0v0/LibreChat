@@ -61,7 +61,7 @@ describe('Agent Instructions', () => {
   it('defaults to inline mode and keeps the inline editor visible', () => {
     render(<InstructionsHarness />);
 
-    expect(screen.getByLabelText('com_ui_instructions')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'com_ui_instructions' })).toBeInTheDocument();
     expect(screen.getByTestId('instructions-inline-panel')).not.toHaveClass('hidden');
     expect(screen.queryByTestId('instructions-prompt-fields')).not.toBeInTheDocument();
   });
@@ -229,7 +229,7 @@ describe('Agent Instructions', () => {
     it('is visible in inline mode, beside the source toggle', () => {
       render(<InstructionsHarness instructionsSource="inline" />);
 
-      expect(screen.getByTestId('instructions-heading')).toHaveTextContent('com_ui_instructions');
+      expect(screen.getByRole('heading', { name: 'com_ui_instructions' })).toBeInTheDocument();
       expect(
         screen.getByRole('radiogroup', { name: 'com_agents_instructions_source_toggle_aria' }),
       ).toBeInTheDocument();
@@ -247,7 +247,7 @@ describe('Agent Instructions', () => {
         />,
       );
 
-      expect(screen.getByTestId('instructions-heading')).toHaveTextContent('com_ui_instructions');
+      expect(screen.getByRole('heading', { name: 'com_ui_instructions' })).toBeInTheDocument();
     });
 
     it('is visible for a restricted link', () => {
@@ -258,19 +258,19 @@ describe('Agent Instructions', () => {
         />,
       );
 
-      expect(screen.getByTestId('instructions-heading')).toHaveTextContent('com_ui_instructions');
+      expect(screen.getByRole('heading', { name: 'com_ui_instructions' })).toBeInTheDocument();
     });
 
     it('is visible while the expanded agent query is loading', () => {
       render(<InstructionsHarness promptStatus="loading" />);
 
-      expect(screen.getByTestId('instructions-heading')).toHaveTextContent('com_ui_instructions');
+      expect(screen.getByRole('heading', { name: 'com_ui_instructions' })).toBeInTheDocument();
     });
 
     it('is visible when the expanded agent query errors', () => {
       render(<InstructionsHarness promptStatus="error" onRetryLoad={jest.fn()} />);
 
-      expect(screen.getByTestId('instructions-heading')).toHaveTextContent('com_ui_instructions');
+      expect(screen.getByRole('heading', { name: 'com_ui_instructions' })).toBeInTheDocument();
     });
 
     it('does not duplicate the visible "Instructions" text next to the inline editor', () => {

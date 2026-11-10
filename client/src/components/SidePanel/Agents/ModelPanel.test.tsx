@@ -18,10 +18,16 @@ jest.mock('@librechat/client', () => ({
   Alert: ({ children, role = 'alert' }: React.HTMLAttributes<HTMLDivElement>) => (
     <div role={role}>{children}</div>
   ),
-  Button: ({ children, onClick, type }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button type={type} onClick={onClick}>
-      {children}
-    </button>
+  Button: ({
+    children,
+    variant: _variant,
+    size: _size,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => (
+    <button {...props}>{children}</button>
+  ),
+  Label: ({ children, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+    <label {...props}>{children}</label>
   ),
   ControlCombobox: ({
     ariaLabel,

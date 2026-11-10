@@ -10,6 +10,7 @@ import OpenSidebar from '~/components/Chat/Menus/OpenSidebar';
 import useDrawerViewport from '~/hooks/Nav/useDrawerViewport';
 import { SidePanelGroup } from '~/components/SidePanel';
 import MineFilterToggle from './MineFilterToggle';
+import { DEFAULT_APP_TITLE } from '~/utils';
 import CategoryTabs from './CategoryTabs';
 import SearchBar from './SearchBar';
 import AgentGrid from './AgentGrid';
@@ -34,7 +35,7 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
   }, [searchParams]);
   const mine: 0 | 1 = searchParams.get('mine') === '1' ? 1 : 0;
 
-  useDocumentTitle(`${localize('com_agents_marketplace')} | LibreChat`);
+  useDocumentTitle(`${localize('com_agents_marketplace')} | ${DEFAULT_APP_TITLE}`);
   useGetEndpointsQuery();
   const categoriesQuery = useGetAgentCategoriesQuery({
     staleTime: 1000 * 60 * 15,

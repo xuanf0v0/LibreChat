@@ -1,7 +1,7 @@
 import { memo, useCallback, Suspense } from 'react';
 import { SquarePen } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { Skeleton, Sidebar, Button, TooltipAnchor } from '@librechat/client';
+import { Skeleton, Sidebar, Button, Separator, TooltipAnchor } from '@librechat/client';
 import type { NavLink } from '~/common';
 import { useShortcutAriaKey, useShortcutHint } from '~/hooks/useKeyboardShortcuts';
 import { useActivePanel, resolveActivePanel, DEFAULT_PANEL } from '~/Providers';
@@ -10,6 +10,7 @@ import { CLOSE_SIDEBAR_ID } from '~/components/Chat/Menus/OpenSidebar';
 import useDirection, { inlineSide } from '~/hooks/Nav/useDirection';
 import useNewChat from '~/hooks/Conversations/useNewChat';
 import { lazyWithRecovery } from '~/lib/assets/lazy';
+import { cn } from '~/utils';
 import { useLocalize } from '~/hooks';
 
 const AccountSettings = lazyWithRecovery(() => import('~/components/Nav/AccountSettings'));
@@ -39,16 +40,20 @@ const NewChatButton = memo(function NewChatButton({
       side={tooltipSide}
       description={tooltipDescription}
       render={
-        <a
-          href="/c/new"
-          data-testid="new-chat-button"
-          aria-label={localize('com_ui_new_chat')}
-          aria-keyshortcuts={ariaKey}
-          className="hover:bg-surface-nav-hover flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-          onClick={handleNewChatClick}
-        >
-          <SquarePen className="text-text-primary h-5 w-5" />
-        </a>
+        <Button asChild variant="nav" size="icon" className="h-9 w-full justify-start gap-2.5 rounded-lg px-2">
+          <a
+            href="/c/new"
+            data-testid="new-chat-button"
+            aria-label={localize('com_ui_new_chat')}
+            aria-keyshortcuts={ariaKey}
+            onClick={handleNewChatClick}
+          >
+            <SquarePen className="text-text-primary h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="text-text-primary min-w-0 truncate text-sm font-medium">
+              {localize('com_ui_new_chat')}
+            </span>
+          </a>
+        </Button>
       }
     />
   );
@@ -111,10 +116,13 @@ const NavIconButton = memo(function NavIconButton({
           aria-pressed={isActive}
           disabled={link.disabled}
           data-testid={`nav-panel-${link.id}`}
-          className="h-9 w-9 rounded-lg"
+          className="h-9 w-full justify-start gap-2.5 rounded-lg px-2"
           onClick={handleClick}
         >
-          <link.icon className="h-5 w-5" aria-hidden="true" />
+          <link.icon className="text-text-primary h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="text-text-primary min-w-0 truncate text-sm font-medium">
+            {localize(link.title)}
+          </span>
         </Button>
       }
     />
@@ -152,6 +160,13 @@ function ExpandedPanel({
 
   return (
     <div className="border-border-inset bg-surface-sidebar flex h-full shrink-0 flex-col gap-2 border-e px-2 py-2">
+      <img
+        src="assets/fullon-mark.png"
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="mx-auto h-6 w-auto shrink-0"
+      />
       <TooltipAnchor
         side={tooltipSide}
         description={toggleSidebarHint}
@@ -164,16 +179,27 @@ function ExpandedPanel({
             aria-label={localize(toggleLabel)}
             aria-expanded={expanded}
             aria-keyshortcuts={toggleSidebarAriaKey}
-            className="h-9 w-9"
+            className={cn(
+              'h-9 rounded-lg',
+              expanded ? 'w-full justify-start gap-2.5 px-2' : 'w-9',
+            )}
             onClick={toggleClick}
           >
-            <Sidebar aria-hidden="true" className="text-text-primary h-5 w-5 rtl:-scale-x-100" />
+            <Sidebar
+              aria-hidden="true"
+              className="text-text-primary h-5 w-5 shrink-0 rtl:-scale-x-100"
+            />
+            {expanded && (
+              <span className="text-text-primary min-w-0 truncate text-sm font-medium">
+                {localize(toggleLabel)}
+              </span>
+            )}
           </Button>
         }
       />
       <NewChatButton setActive={setActive} switchToHistory={switchToHistory} />
-      <AgentMarketplaceButton />
-      <div className="border-border-inset mx-2 border-b" />
+      <AgentMarketplaceButton layout="rail" />
+      <Separator className="mx-2" />
       <div className="flex flex-col gap-1 overflow-y-auto">
         {links.map((link) => (
           <NavIconButton

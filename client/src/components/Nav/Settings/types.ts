@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { MessageSquare, Info } from 'lucide-react';
+import { MessageSquare, Info, Server } from 'lucide-react';
 import { SettingsTabValues } from 'librechat-data-provider';
 import { GearIcon, DataIcon, UserIcon, SpeechIcon } from '@librechat/client';
 import type { ComponentType, ReactNode } from 'react';
@@ -9,8 +9,8 @@ export type SettingsTab =
   | SettingsTabValues.GENERAL
   | SettingsTabValues.CHAT
   | SettingsTabValues.SPEECH
-  | SettingsTabValues.LANGFUSE
   | SettingsTabValues.DATA
+  | SettingsTabValues.PROVIDERS
   | SettingsTabValues.ACCOUNT
   | SettingsTabValues.ABOUT;
 
@@ -30,8 +30,8 @@ export type SectionId =
   | 'memory'
   | 'codeExecution'
   | 'data'
+  | 'providers'
   | 'apiKeys'
-  | 'langfuse'
   | 'danger'
   | 'profile'
   | 'security'
@@ -59,8 +59,6 @@ export interface SettingsContextValue {
   aboutEnabled: boolean;
   mascotAllowed: boolean;
   engineTTS: string;
-  langfuseConnectionAccess: boolean;
-  langfusePromptSyncAccess?: boolean;
   adminPanelURL: string;
   replyTabBadgeAllowed: boolean;
   replyNotificationsAllowed: boolean;
@@ -91,17 +89,6 @@ export interface TabMeta {
   icon: ReactNode;
   sections: SectionMeta[];
   show?: (ctx: SettingsContextValue) => boolean;
-}
-
-function createLangfuseIcon(className: string): ReactNode {
-  return createElement('span', {
-    className: `${className} inline-block shrink-0 bg-current`,
-    'aria-hidden': true,
-    style: {
-      WebkitMask: 'url(/assets/langfuse-icon-monochrome.svg) center / contain no-repeat',
-      mask: 'url(/assets/langfuse-icon-monochrome.svg) center / contain no-repeat',
-    },
-  });
 }
 
 export const TABS: TabMeta[] = [
@@ -139,19 +126,6 @@ export const TABS: TabMeta[] = [
     ],
   },
   {
-    id: SettingsTabValues.LANGFUSE,
-    labelKey: 'com_ui_settings_tab_langfuse',
-    icon: createLangfuseIcon('h-4 w-4'),
-    sections: [
-      {
-        id: 'langfuse',
-        labelKey: 'com_ui_settings_section_langfuse',
-        icon: createLangfuseIcon('h-3.5 w-3.5'),
-      },
-    ],
-    show: (ctx) => ctx.langfuseConnectionAccess || ctx.langfusePromptSyncAccess === true,
-  },
-  {
     id: SettingsTabValues.DATA,
     labelKey: 'com_ui_settings_tab_data',
     icon: createElement(DataIcon),
@@ -162,6 +136,12 @@ export const TABS: TabMeta[] = [
       { id: 'apiKeys', labelKey: 'com_ui_settings_section_api_keys' },
       { id: 'danger', labelKey: 'com_ui_settings_section_danger_zone', danger: true },
     ],
+  },
+  {
+    id: SettingsTabValues.PROVIDERS,
+    labelKey: 'com_ui_settings_tab_providers',
+    icon: createElement(Server, { className: 'icon-sm', 'aria-hidden': true }),
+    sections: [{ id: 'providers', labelKey: 'com_ui_settings_section_providers' }],
   },
   {
     id: SettingsTabValues.ACCOUNT,

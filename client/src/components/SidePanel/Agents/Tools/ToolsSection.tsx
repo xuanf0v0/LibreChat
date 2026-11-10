@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { Label, OGDialog, OGDialogTemplate, useToastContext } from '@librechat/client';
+import { Label, EmptyState, OGDialog, OGDialogTemplate, useToastContext } from '@librechat/client';
 import {
   PermissionTypes,
   Permissions,
@@ -32,6 +32,7 @@ import ItemDialog from './ItemDialog/ItemDialog';
 import { mcpAllToken } from './items/selectors';
 import { isEphemeralAgent } from '~/common';
 import SkillsSection from './SkillsSection';
+import PanelSection from '../PanelSection';
 import SkillsDialog from './SkillsDialog';
 import ToolRow from './ToolRow';
 
@@ -357,18 +358,11 @@ function SelectedSection({
   onRemove,
 }: SelectedSectionProps) {
   const localize = useLocalize();
-  const badge = items.length > 0 ? String(items.length) : undefined;
+  const hasItems = items.length > 0;
   return (
-    <div className="mb-3 flex flex-col">
-      <div className="mb-1 flex items-center justify-between">
-        <label className="text-text-secondary text-2xs block font-medium tracking-wide uppercase">
-          {title}
-          {badge != null && (
-            <span className="bg-surface-tertiary text-text-secondary text-3xs ms-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1.5 font-medium tracking-normal normal-case">
-              {badge}
-            </span>
-          )}
-        </label>
+    <PanelSection
+      title={title}
+      action={
         <button
           type="button"
           onClick={onAdd}
@@ -378,18 +372,9 @@ function SelectedSection({
           <Plus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
           {localize('com_ui_add')}
         </button>
-      </div>
-      {items.length === 0 ? (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="border-border-medium text-text-secondary hover:border-border-heavy hover:bg-surface-secondary hover:text-text-primary focus-visible:ring-ring-primary flex w-full flex-col items-center gap-1 rounded-xl border border-dashed px-2 py-4 transition-colors focus:outline-hidden focus-visible:ring-2"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          <span className="text-xs">{emptyLabel}</span>
-          <span className="text-text-secondary text-2xs">{emptyHint}</span>
-        </button>
-      ) : (
+      }
+    >
+      {hasItems ? (
         <ul className="flex flex-col gap-1.5">
           {items.map((item) => (
             <li key={`${item.kind}:${item.id}`}>
@@ -397,7 +382,9 @@ function SelectedSection({
             </li>
           ))}
         </ul>
+      ) : (
+        <EmptyState icon={Plus} title={emptyLabel} description={emptyHint} />
       )}
-    </div>
+    </PanelSection>
   );
 }

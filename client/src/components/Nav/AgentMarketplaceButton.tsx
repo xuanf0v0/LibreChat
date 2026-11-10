@@ -17,7 +17,7 @@ interface AgentMarketplaceButtonProps {
    * strip is the easiest thing there to miss, and the list it now heads is
    * where someone already looks for somewhere to go.
    */
-  layout?: 'icon' | 'row';
+  layout?: 'icon' | 'row' | 'rail';
 }
 
 /** Agent Marketplace entry in the sidebar. Self-gated on marketplace
@@ -35,6 +35,9 @@ export default function AgentMarketplaceButton({
   }
 
   const isRow = layout === 'row';
+  /** The desktop rail now carries a label beside every icon, so it uses the
+   *  same inline composition as the mobile row — only the width differs. */
+  const isLabeled = isRow || layout === 'rail';
 
   /** Composed through the shared button so the focus ring, hover fill and theme
    *  timing come from the primitive rather than being restated: a hand-rolled
@@ -45,13 +48,16 @@ export default function AgentMarketplaceButton({
     <Button
       asChild
       variant="nav"
-      size={isRow ? 'row' : 'icon'}
-      className={cn('shrink-0', isRow ? 'w-full justify-start' : 'h-9 w-9')}
+      size={isLabeled ? 'row' : 'icon'}
+      className={cn(
+        'shrink-0',
+        isLabeled ? 'w-full justify-start gap-2.5 rounded-lg px-2' : 'h-9 w-9',
+      )}
     >
       <Link
         to="/agents"
         data-testid="nav-agents-marketplace-button"
-        aria-label={isRow ? undefined : localize('com_agents_marketplace')}
+        aria-label={isLabeled ? undefined : localize('com_agents_marketplace')}
         onClick={(event) => {
           if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) {
             return;
@@ -60,7 +66,7 @@ export default function AgentMarketplaceButton({
         }}
       >
         <LayoutGrid className="text-text-primary h-5 w-5 shrink-0" aria-hidden="true" />
-        {isRow && (
+        {isLabeled && (
           <span className="text-text-primary min-w-0 truncate text-sm font-medium">
             {localize('com_agents_marketplace')}
           </span>
@@ -69,7 +75,7 @@ export default function AgentMarketplaceButton({
     </Button>
   );
 
-  if (isRow) {
+  if (isLabeled) {
     return button;
   }
 

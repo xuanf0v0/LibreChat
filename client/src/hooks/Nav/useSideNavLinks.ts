@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { MCPIcon, OpenAIMinimalIcon } from '@librechat/client';
+import { OpenAIMinimalIcon } from '@librechat/client';
 import {
   Bot,
   Brain,
   Bookmark,
   NotebookPen,
-  ScrollText,
+  LibraryBig,
+  Store,
   CalendarClock,
   ArrowRightToLine,
   SlidersHorizontal,
@@ -26,7 +27,6 @@ import {
   useGetAgentsConfig,
   useHasAccess,
 } from '~/hooks';
-import MCPBuilderPanel from '~/components/SidePanel/MCPBuilder/MCPBuilderPanel';
 import AgentPanelSwitch from '~/components/SidePanel/Agents/AgentPanelSwitch';
 import BookmarkPanel from '~/components/SidePanel/Bookmarks/BookmarkPanel';
 import PanelSwitch from '~/components/SidePanel/Builder/PanelSwitch';
@@ -34,7 +34,8 @@ import { SchedulePanel } from '~/components/SidePanel/Schedules';
 import Parameters from '~/components/SidePanel/Parameters/Panel';
 import { MemoryPanel } from '~/components/SidePanel/Memories';
 import { PromptsAccordion } from '~/components/Prompts';
-import { SkillsAccordion } from '~/components/Skills';
+import { SkillPlazaPanel } from '~/components/SkillPlaza';
+import { KnowledgePanel } from '~/components/Knowledge';
 
 export default function useSideNavLinks({
   hidePanel,
@@ -98,8 +99,49 @@ export default function useSideNavLinks({
   const { agentsConfig } = useGetAgentsConfig({ endpointsConfig });
   const { skillsEnabled } = useAgentCapabilities(agentsConfig?.capabilities);
 
+  // Auto tasks (scheduled chats) ship enabled in this deployment's interface
+  // defaults. Absent config still counts as off, matching the server exactly.
+  const schedulesConfig = interfaceConfig.schedules;
+  const schedulesEnabled =
+    schedulesConfig != null &&
+    schedulesConfig !== false &&
+    !(typeof schedulesConfig === 'object' && schedulesConfig.use === false);
+
+  const showSkillPlaza =
+    (hasAccessToSkills && skillsEnabled) ||
+    (hasAccessToUseMCPSettings && availableMCPServers != null && availableMCPServers.length > 0) ||
+    hasAccessToCreateMCP;
+
   const Links = useMemo(() => {
     const links: NavLink[] = [];
+
+    if (hasAccessToSchedules && schedulesEnabled) {
+      links.push({
+        title: 'com_ui_schedules',
+        label: '',
+        icon: CalendarClock,
+        id: 'schedules',
+        Component: SchedulePanel,
+      });
+    }
+
+    if (showSkillPlaza) {
+      links.push({
+        title: 'com_ui_skill_plaza',
+        label: '',
+        icon: Store,
+        id: 'skill-plaza',
+        Component: SkillPlazaPanel,
+      });
+    }
+
+    links.push({
+      title: 'com_ui_knowledge_base',
+      label: '',
+      icon: LibraryBig,
+      id: 'knowledge',
+      Component: KnowledgePanel,
+    });
 
     if (
       endpointsConfig?.[EModelEndpoint.agents] &&
@@ -132,36 +174,6 @@ export default function useSideNavLinks({
         icon: OpenAIMinimalIcon,
         id: EModelEndpoint.assistants,
         Component: PanelSwitch,
-      });
-    }
-
-    if (hasAccessToSkills && skillsEnabled) {
-      links.push({
-        title: 'com_ui_skills',
-        label: '',
-        icon: ScrollText,
-        id: 'skills',
-        Component: SkillsAccordion,
-      });
-    }
-
-    // Scheduled chats are EXPERIMENTAL and default-OFF: the server enables them only
-    // when an admin opts in explicitly, so ABSENT config means disabled here too.
-    // Mirrors getLimits exactly — absent/null/`false` are all off, `true` is on, and the
-    // object form is on unless it sets `use: false`. Any mismatch would show an entry
-    // whose create/run operations the backend rejects.
-    const schedulesConfig = interfaceConfig.schedules;
-    const schedulesEnabled =
-      schedulesConfig != null &&
-      schedulesConfig !== false &&
-      !(typeof schedulesConfig === 'object' && schedulesConfig.use === false);
-    if (hasAccessToSchedules && schedulesEnabled) {
-      links.push({
-        title: 'com_ui_schedules',
-        label: '',
-        icon: CalendarClock,
-        id: 'schedules',
-        Component: SchedulePanel,
       });
     }
 
@@ -210,19 +222,6 @@ export default function useSideNavLinks({
       });
     }
 
-    if (
-      (hasAccessToUseMCPSettings && availableMCPServers && availableMCPServers.length > 0) ||
-      hasAccessToCreateMCP
-    ) {
-      links.push({
-        title: 'com_nav_setting_mcp',
-        label: '',
-        icon: MCPIcon,
-        id: 'mcp-builder',
-        Component: MCPBuilderPanel,
-      });
-    }
-
     if (includeHidePanel && hidePanel) {
       links.push({
         title: 'com_sidepanel_hide_panel',
@@ -241,18 +240,14 @@ export default function useSideNavLinks({
     hasAccessToAgents,
     hasAccessToCreateAgents,
     hasAccessToPrompts,
-    hasAccessToSkills,
-    skillsEnabled,
     hasAccessToMemories,
     hasAccessToReadMemories,
     hasAccessToSchedules,
-    interfaceConfig.schedules,
+    schedulesEnabled,
+    showSkillPlaza,
     interfaceConfig.parameters,
     endpointType,
     hasAccessToBookmarks,
-    availableMCPServers,
-    hasAccessToUseMCPSettings,
-    hasAccessToCreateMCP,
     includeHidePanel,
     hidePanel,
   ]);

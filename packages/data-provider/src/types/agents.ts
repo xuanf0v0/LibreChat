@@ -1190,6 +1190,29 @@ export type Agent = {
 
 export type TAgentsMap = Record<string, Agent | undefined>;
 
+/** A model-generated agent draft; never persisted until the user confirms. */
+export type AgentGenerateDraft = {
+  name: string;
+  description: string;
+  instructions: string;
+  category: string;
+  conversation_starters: string[];
+};
+
+export type AgentGenerateParams = {
+  prompt: string;
+  provider: string;
+  model: string;
+  draft?: Partial<AgentGenerateDraft>;
+  locale?: string;
+};
+
+export type AgentGenerateResponse = {
+  draft: AgentGenerateDraft;
+  provider: string;
+  model: string;
+};
+
 export type AgentCreateParams = {
   git_identity?: AgentGitIdentity;
   name?: string | null;

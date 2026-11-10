@@ -77,6 +77,7 @@ jest.mock('~/hooks', () => ({
   },
   useAuthContext: () => mockUseAuthContext(),
   useHasAccess: () => mockUseHasAccess(),
+  useSelectAgent: () => ({ onSelect: jest.fn() }),
   useResourcePermissions: () => mockUseResourcePermissions(),
 }));
 

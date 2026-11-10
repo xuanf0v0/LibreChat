@@ -89,6 +89,7 @@ const { startSkillDeletionSweep } = require('./services/Skills/deletion');
 const { initializeAgentTriggerService } = require('./services/Agents/triggers');
 const { resumeAgentEventDetachedAction } = require('./services/Agents/detachedActionResume');
 const { initializeScheduleEngine, recordExpiredScheduleApproval } = require('./services/Schedules');
+const { recoverSuperAgentTasks } = require('./services/SuperAgent');
 const { jwtLogin, ldapLogin, passportLogin } = require('~/strategies');
 const { startExpiredFileSweep } = require('./services/Files/process');
 const { checkMigrations } = require('./services/start/migration');
@@ -457,12 +458,15 @@ const startServer = async () => {
   app.use('/api/traces', routes.traces);
   app.use('/api/presets', routes.presets);
   app.use('/api/projects', routes.projects);
+  app.use('/api/super-agent', routes.superagent);
   app.use('/api/prompts', routes.prompts);
   app.use('/api/skills', routes.skills);
+  app.use('/api/workspace', routes.workspace);
   app.use('/api/categories', routes.categories);
   app.use('/api/endpoints', routes.endpoints);
   app.use('/api/balance', routes.balance);
   app.use('/api/models', routes.models);
+  app.use('/api/model-providers', routes.modelProviders);
   app.use('/api/config', preAuthTenantMiddleware, optionalJwtAuth, routes.config);
   app.use('/api/assistants', routes.assistants);
   app.use('/api/files', await routes.files.initialize());
@@ -557,6 +561,7 @@ const startServer = async () => {
       });
       const scheduleEngineArmed = (await initializeScheduleEngine()) != null;
       scheduleEngineState = scheduleEngineArmed ? 'armed' : 'unavailable';
+      await recoverSuperAgentTasks();
       if (!scheduleEngineArmed) {
         // Terminal, not transient: arming is attempted once, so schedule writes are refused
         // for the life of this process. Logged at error level because the only other signal

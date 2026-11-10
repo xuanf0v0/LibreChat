@@ -50,6 +50,8 @@ export const balance = () => `${BASE_URL}/api/balance`;
 export const userPlugins = () => `${BASE_URL}/api/user/plugins`;
 
 export const deleteUser = () => `${BASE_URL}/api/user/delete`;
+export const modelProviders = () => `${BASE_URL}/api/model-providers`;
+export const modelProviderModels = () => `${modelProviders()}/models`;
 export const codeEnvironments = () => `${BASE_URL}/api/code-environments`;
 export const codeSetupAttempt = (attemptId: string) =>
   `${codeEnvironments()}/setup/${encodeURIComponent(attemptId)}`;
@@ -254,6 +256,18 @@ export const projectFile = (projectId: string, fileId: string) =>
 
 export const projectConversation = (conversationId: string) =>
   `${projectsRoot}/conversations/${encodeURIComponent(conversationId)}`;
+
+export const superAgentRoot = `${BASE_URL}/api/super-agent`;
+export const superAgentTasks = (limit?: number) =>
+  `${superAgentRoot}/tasks${limit == null ? '' : `?limit=${encodeURIComponent(String(limit))}`}`;
+export const superAgentTask = (id: string) =>
+  `${superAgentTasks()}/${encodeURIComponent(id)}`;
+export const superAgentTaskCancel = (id: string) => `${superAgentTask(id)}/cancel`;
+export const superAgentTaskEvents = (id: string) => `${superAgentTask(id)}/events`;
+export const superAgentWorkers = () => `${superAgentRoot}/workers`;
+export const superAgentTrinityHealth = () => `${superAgentRoot}/trinity/health`;
+export const superAgentWorker = (agentId: string) =>
+  `${superAgentWorkers()}/${encodeURIComponent(agentId)}`;
 
 export const search = (q: string, cursor?: string | null) =>
   `${BASE_URL}/api/search?q=${q}${cursor ? `&cursor=${cursor}` : ''}`;
@@ -529,6 +543,13 @@ export const runSchedule = (id: string) => `${schedule(id)}/run`;
 /* Skills */
 export const skills = () => `${BASE_URL}/api/skills`;
 export const importSkill = () => `${skills()}/import`;
+
+/* Workspace picker */
+export const workspace = () => `${BASE_URL}/api/workspace`;
+export const workspaceEntries = (path?: string | null) => {
+  const base = `${workspace()}/entries`;
+  return path ? `${base}?path=${encodeURIComponent(path)}` : base;
+};
 
 export const getSkill = (id: string) => `${skills()}/${encodeURIComponent(id)}`;
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useRecoilValue } from 'recoil';
-import { BarChart3, MessagesSquare } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { BarChart3, MessagesSquare, Workflow } from 'lucide-react';
 import { useUserKeyQuery } from 'librechat-data-provider/react-query';
 import { getConfigDefaults, getEndpointField } from 'librechat-data-provider';
 import type { TEndpointsConfig } from 'librechat-data-provider';
@@ -72,11 +72,25 @@ export default function useUnifiedSidebarLinks() {
       Component: ConversationsSection,
     };
 
+    const superAgentLink: NavLink = {
+      title: 'com_ui_super_agent',
+      label: '',
+      icon: Workflow,
+      id: 'super-agent',
+      onClick: () => {
+        if (!location.pathname.startsWith('/super-agent')) {
+          navigate('/super-agent');
+        }
+      },
+    };
+
     if (
       !insightsFeatureEnabled ||
       (!isInsightsRoute && !isInsightsAccessLoading && insightsAccess?.access !== true)
     ) {
-      return [conversationLink, ...sideNavLinks];
+      /** Chat history sits after the work modules and before account settings,
+       *  so the top of the rail stays the branded task entry points. */
+      return [...sideNavLinks, superAgentLink, conversationLink];
     }
 
     const insightsLink: NavLink = {
@@ -91,11 +105,7 @@ export default function useUnifiedSidebarLinks() {
         }
       },
     };
-    const mcpIndex = sideNavLinks.findIndex((link) => link.id === 'mcp-builder');
-    const nextLinks = [...sideNavLinks];
-    nextLinks.splice(mcpIndex >= 0 ? mcpIndex + 1 : nextLinks.length, 0, insightsLink);
-
-    return [conversationLink, ...nextLinks];
+    return [...sideNavLinks, superAgentLink, insightsLink, conversationLink];
   }, [
     insightsAccess?.access,
     insightsFeatureEnabled,

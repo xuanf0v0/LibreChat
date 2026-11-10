@@ -1,5 +1,5 @@
-import * as Tabs from '@radix-ui/react-tabs';
 import { Search, X, ChevronRight } from 'lucide-react';
+import { Button, Input, TabsList, TabsTrigger } from '@librechat/client';
 import type { SettingsContextValue, SettingsTab } from './types';
 import { useLocalize } from '~/hooks';
 import { TABS } from './types';
@@ -41,7 +41,7 @@ export default function Sidebar({
           className="text-text-tertiary pointer-events-none absolute inset-s-2 top-1/2 h-4 w-4 -translate-y-1/2"
           aria-hidden="true"
         />
-        <input
+        <Input
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
@@ -54,33 +54,28 @@ export default function Sidebar({
           }}
           placeholder={localize('com_ui_settings_search_placeholder')}
           aria-label={localize('com_ui_settings_search_placeholder')}
-          className="bg-surface-secondary text-text-primary w-full rounded-lg py-2 ps-8 pe-8 text-sm focus-visible:outline-hidden"
+          variant="with-icons"
         />
         {query.length > 0 && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={() => onQueryChange('')}
             aria-label={localize('com_ui_clear_search')}
-            className="text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-visible:ring-text-primary absolute inset-e-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+            className="absolute inset-e-1.5 top-1/2 -translate-y-1/2"
           >
             <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          </Button>
         )}
       </div>
       {!hideTabs && (
-        <Tabs.List
-          aria-label={localize('com_nav_settings')}
-          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto"
-        >
+        <TabsList variant="sidebar" aria-label={localize('com_nav_settings')} className="flex-1">
           {tabs.map((tab) => (
-            <Tabs.Trigger
+            <TabsTrigger
               key={tab.id}
               value={tab.id}
+              variant="sidebar"
               onClick={() => onSelectTab(tab.id)}
-              className={cn(
-                'text-text-secondary hover:bg-surface-hover hover:text-text-primary focus-visible:ring-text-primary rounded-theme-control flex shrink-0 items-center justify-between gap-2 px-3 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-hidden focus-visible:ring-inset md:py-2',
-                'data-[state=active]:bg-surface-tab-selected data-[state=active]:text-text-primary',
-              )}
             >
               <span className="flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
                 {tab.icon}
@@ -92,9 +87,9 @@ export default function Sidebar({
                   aria-hidden="true"
                 />
               )}
-            </Tabs.Trigger>
+            </TabsTrigger>
           ))}
-        </Tabs.List>
+        </TabsList>
       )}
     </div>
   );

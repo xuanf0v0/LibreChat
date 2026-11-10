@@ -1,3 +1,4 @@
+import { Button } from '@librechat/client';
 import { TStartupConfig } from 'librechat-data-provider';
 import { policyUrls } from '~/utils/policies';
 import { useLocalize } from '~/hooks';
@@ -12,27 +13,19 @@ function Footer({ startupConfig }: { startupConfig: TStartupConfig | null | unde
   const { privacyPolicyUrl, termsOfServiceUrl } = policyUrls(startupConfig);
 
   const privacyPolicyRender = privacyPolicyUrl != null && (
-    <a
-      className="text-accent-primary hover:text-accent-primary-hover hover:decoration-accent-primary-hover focus:text-accent-primary-hover focus:decoration-accent-primary-hover text-sm underline decoration-transparent transition-all duration-200"
-      href={privacyPolicyUrl}
-      // Removed for WCAG compliance
-      // target={privacyPolicy.openNewTab ? '_blank' : undefined}
-      rel="noreferrer"
-    >
-      {localize('com_ui_privacy_policy')}
-    </a>
+    <Button asChild variant="link-accent" size="bare">
+      <a href={privacyPolicyUrl} rel="noreferrer">
+        {localize('com_ui_privacy_policy')}
+      </a>
+    </Button>
   );
 
   const termsOfServiceRender = termsOfServiceUrl != null && (
-    <a
-      className="text-accent-primary hover:text-accent-primary-hover hover:decoration-accent-primary-hover focus:text-accent-primary-hover focus:decoration-accent-primary-hover text-sm underline decoration-transparent transition-all duration-200"
-      href={termsOfServiceUrl}
-      // Removed for WCAG compliance
-      // target={termsOfService.openNewTab ? '_blank' : undefined}
-      rel="noreferrer"
-    >
-      {localize('com_ui_terms_of_service')}
-    </a>
+    <Button asChild variant="link-accent" size="bare">
+      <a href={termsOfServiceUrl} rel="noreferrer">
+        {localize('com_ui_terms_of_service')}
+      </a>
+    </Button>
   );
 
   return (

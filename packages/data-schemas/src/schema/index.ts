@@ -8,6 +8,8 @@ export { default as balanceSchema } from './balance';
 export { default as bannerSchema } from './banner';
 export { default as categoriesSchema } from './categories';
 export { default as chatProjectSchema } from './chatProject';
+export { default as superAgentTaskSchema } from './superagent';
+export { default as superAgentWorkerSchema } from './superagentWorker';
 export { default as codeEnvironmentSchema } from './codeEnvironment';
 export { default as conversationTagSchema } from './conversationTag';
 export { default as convoSchema } from './convo';

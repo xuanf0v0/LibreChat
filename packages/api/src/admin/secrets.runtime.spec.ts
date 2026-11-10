@@ -333,6 +333,9 @@ const RUNTIME_READERS: Readonly<Record<string, RuntimeReader>> = {
   'webSearch.cohereApiKey': webSearchReader('cohereApiKey', {
     rerankerType: RerankerTypes.COHERE,
   }),
+  'trinity.apiKey': {
+    module: 'api/server/services/SuperAgent/index.js',
+  },
   'endpoints.azureOpenAI.groups[].apiKey': azureGroupsReader,
   'endpoints.custom[].apiKey': {
     module: 'packages/api/src/app/config.ts',

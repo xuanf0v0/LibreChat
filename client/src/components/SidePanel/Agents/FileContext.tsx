@@ -11,6 +11,7 @@ import { SharePointPickerDialog } from '~/components/SharePoint';
 import FileRow from '~/components/Chat/Input/Files/FileRow';
 import { useGetStartupConfig } from '~/data-provider';
 import { isEphemeralAgent } from '~/common';
+import PanelSection from './PanelSection';
 import { cn } from '~/utils';
 
 const addButtonClassName = cn(
@@ -137,38 +138,24 @@ function FileContext({
     </Button>
   );
 
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        {showHeader ? (
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="text-text-secondary text-2xs truncate font-medium tracking-wide uppercase">
-              {localize('com_agents_file_context_label')}
-            </span>
-            <TooltipAnchor
-              description={localize('com_agents_file_context_description')}
-              side="top"
-              render={
-                <button
-                  type="button"
-                  aria-label={localize('com_agents_file_context_description')}
-                  className="text-text-tertiary hover:text-text-secondary focus-visible:ring-ring-primary flex size-4 shrink-0 items-center justify-center rounded transition-colors focus:outline-hidden focus-visible:ring-2"
-                >
-                  <Info className="size-3.5" aria-hidden="true" />
-                </button>
-              }
-            />
-            {fileCount > 0 && (
-              <span className="bg-surface-tertiary text-text-secondary text-3xs inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1.5 font-medium">
-                {fileCount}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span />
-        )}
-        {addControl}
-      </div>
+  const infoControl = (
+    <TooltipAnchor
+      description={localize('com_agents_file_context_description')}
+      side="top"
+      render={
+        <button
+          type="button"
+          aria-label={localize('com_agents_file_context_description')}
+          className="text-text-tertiary hover:text-text-secondary focus-visible:ring-ring-primary flex size-4 shrink-0 items-center justify-center rounded transition-colors focus:outline-hidden focus-visible:ring-2"
+        >
+          <Info className="size-3.5" aria-hidden="true" />
+        </button>
+      }
+    />
+  );
+
+  const content = (
+    <>
       {fileCount > 0 && (
         <FileRow
           files={files}
@@ -200,7 +187,30 @@ function FileContext({
         downloadProgress={downloadProgress}
         maxSelectionCount={endpointFileConfig?.fileLimit}
       />
-    </div>
+    </>
+  );
+
+  if (!showHeader) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-end">{addControl}</div>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <PanelSection
+      title={localize('com_agents_file_context_label')}
+      action={
+        <>
+          {infoControl}
+          {addControl}
+        </>
+      }
+    >
+      {content}
+    </PanelSection>
   );
 }
 

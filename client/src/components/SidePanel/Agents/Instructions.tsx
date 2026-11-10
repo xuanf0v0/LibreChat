@@ -1,11 +1,12 @@
 import { useId, useMemo } from 'react';
-import { Label, Radio } from '@librechat/client';
+import { Radio } from '@librechat/client';
 import { Controller, useWatch, useFormContext } from 'react-hook-form';
 import type { AgentForm } from '~/common';
 import InstructionsPromptFields, { fieldWrapperClass, LoadError } from './InstructionsPromptFields';
 import { isRestrictedInstructionsPrompt } from './instructionsPromptUtils';
 import RestrictedInstructionsPrompt from './RestrictedInstructionsPrompt';
 import { VariableEditor } from '~/components/Variables';
+import PanelSection from './PanelSection';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -68,14 +69,10 @@ export default function Instructions({
   const isReady = promptStatus === 'ready';
 
   return (
-    <div className="mb-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <Label variant="section" data-testid="instructions-heading">
-          {localize('com_ui_instructions')}
-        </Label>
-        <SourceToggle disabled={!isReady} />
-      </div>
-
+    <PanelSection
+      title={localize('com_ui_instructions')}
+      action={<SourceToggle disabled={!isReady} />}
+    >
       {/* The expanded agent query (the only source of `instructionsPrompt`) has not
        * resolved yet: nothing here is derived from the basic projection, which would
        * otherwise read a linked agent as unlinked. The toggle stays disabled above so
@@ -129,6 +126,6 @@ export default function Instructions({
           )}
         />
       )}
-    </div>
+    </PanelSection>
   );
 }

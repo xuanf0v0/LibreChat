@@ -8,9 +8,10 @@ import './Field.css';
  *  a row with icon Buttons, so it takes their height role and the row stays one height when a
  *  theme sizes fields and buttons apart. `floating` is the sign-in form field whose label rests
  *  inside it and lifts on focus. `flush` draws no border or ring because the surrounding frame owns
- *  the indicator, and `embedded` fills a list or popover row edge to edge. */
+ *  the indicator, and `embedded` fills a list or popover row edge to edge. `with-icons` leaves room
+ *  for a leading glyph and a trailing clear control. */
 export const INPUT_VARIANTS: Record<
-  'default' | 'inline' | 'title' | 'title-sm' | 'floating' | 'flush' | 'embedded',
+  'default' | 'inline' | 'title' | 'title-sm' | 'floating' | 'flush' | 'embedded' | 'with-icons',
   string
 > = {
   default: '',
@@ -20,6 +21,8 @@ export const INPUT_VARIANTS: Record<
   floating: floatingField,
   flush: fieldFlush,
   embedded: fieldEmbedded,
+  /** Room for a leading search glyph and a trailing clear control. */
+  'with-icons': 'ps-8 pe-8',
 };
 
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {

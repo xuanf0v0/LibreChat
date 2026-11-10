@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
 import { X, ChevronLeft } from 'lucide-react';
 import { SettingsTabValues } from 'librechat-data-provider';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import {
   Button,
   DialogLayer,
+  Tabs,
+  TabsContent,
   useMediaQuery,
   useRemScale,
   DIALOG_SCRIM_CLASS,
@@ -104,7 +105,6 @@ export default function SettingsDialog({ open, onOpenChange }: TDialogProps) {
                   size="icon"
                   onClick={() => onOpenChange(false)}
                   aria-label={localize('com_ui_close_settings')}
-                  className="focus:ring-border-xheavy h-auto w-auto p-1 focus:ring-2"
                 >
                   <X className="h-5 w-5" aria-hidden="true" />
                 </Button>
@@ -112,42 +112,42 @@ export default function SettingsDialog({ open, onOpenChange }: TDialogProps) {
               {/* A Headless UI panel, so it counts itself as a dialog level for the popovers its
                   settings open (Select lists, menus, tooltips) to layer above it. */}
               <DialogLayer>
-                <Tabs.Root
+                <Tabs
                   value={effectiveTab}
                   onValueChange={(v) => setActiveTab(v as SettingsTab)}
                   orientation="vertical"
-                  className={cn(
-                    'flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5',
-                    !isSmallScreen && 'flex-row gap-6',
-                  )}
+                  className="flex min-h-0 flex-1 overflow-hidden"
                 >
-                  {showSidebar && (
-                    <Sidebar
-                      ctx={ctx}
-                      query={query}
-                      onQueryChange={setQuery}
-                      onSelectTab={selectTab}
-                      showChevron={isSmallScreen}
-                      hideTabs={hideTabs}
-                      stacked={isSmallScreen}
-                    />
-                  )}
-                  {showContent && (
-                    <div className={cn('flex-1 overflow-y-auto', !isSmallScreen && 'pe-1')}>
-                      {searching ? (
-                        <Content activeTab={effectiveTab} query={query} ctx={ctx} />
-                      ) : (
-                        <Tabs.Content
-                          value={effectiveTab}
-                          tabIndex={-1}
-                          className="focus:outline-hidden"
-                        >
+                  <div
+                    className={cn(
+                      'flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5',
+                      !isSmallScreen && 'flex-row gap-6',
+                    )}
+                  >
+                    {showSidebar && (
+                      <Sidebar
+                        ctx={ctx}
+                        query={query}
+                        onQueryChange={setQuery}
+                        onSelectTab={selectTab}
+                        showChevron={isSmallScreen}
+                        hideTabs={hideTabs}
+                        stacked={isSmallScreen}
+                      />
+                    )}
+                    {showContent && (
+                      <div className={cn('flex-1 overflow-y-auto', !isSmallScreen && 'pe-1')}>
+                        {searching ? (
                           <Content activeTab={effectiveTab} query={query} ctx={ctx} />
-                        </Tabs.Content>
-                      )}
-                    </div>
-                  )}
-                </Tabs.Root>
+                        ) : (
+                          <TabsContent value={effectiveTab} variant="flush" tabIndex={-1}>
+                            <Content activeTab={effectiveTab} query={query} ctx={ctx} />
+                          </TabsContent>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Tabs>
               </DialogLayer>
             </DialogPanel>
           </div>

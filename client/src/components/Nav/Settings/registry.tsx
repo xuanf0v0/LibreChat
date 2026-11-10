@@ -25,7 +25,6 @@ import {
 import DisplayUsernameMessages from '../SettingsTabs/Account/DisplayUsernameMessages';
 import ConversationModeSwitch from '../SettingsTabs/Speech/ConversationModeSwitch';
 import EnableTwoFactorItem from '../SettingsTabs/Account/TwoFactorAuthentication';
-import LangfuseConnection from '../SettingsTabs/Integrations/LangfuseConnection';
 import ClockFormatSelector from '../SettingsTabs/General/ClockFormatSelector';
 import ImportConversations from '../SettingsTabs/Data/ImportConversations';
 import AnalyticsConsentToggle from '../SettingsTabs/Data/AnalyticsConsent';
@@ -62,12 +61,13 @@ import Avatar from '../SettingsTabs/Account/Avatar';
 import ConnectedAccounts from './ConnectedAccounts';
 import CodeEnvironments from './CodeEnvironments';
 import About from '../SettingsTabs/About/About';
+import ModelProviders from './ModelProviders';
 import ApiKeys from '../SettingsTabs/ApiKeys';
 import MemoryToggle from './MemoryToggle';
 import { TTSEndpoints } from '~/common';
 import store from '~/store';
 
-const { GENERAL, CHAT, SPEECH, DATA, ACCOUNT, ABOUT } = SettingsTabValues;
+const { GENERAL, CHAT, SPEECH, DATA, PROVIDERS, ACCOUNT, ABOUT } = SettingsTabValues;
 
 export const registry: SettingEntry[] = [
   // General · Appearance
@@ -736,6 +736,26 @@ export const registry: SettingEntry[] = [
     show: (ctx) => ctx.analyticsConfigured,
     Component: AnalyticsConsentToggle,
   },
+  // Model providers
+  {
+    id: 'modelProviders',
+    tab: PROVIDERS,
+    section: 'providers',
+    labelKey: 'com_ui_settings_label_model_providers',
+    keywords: [
+      'model',
+      'provider',
+      'endpoint',
+      'custom',
+      'api',
+      'key',
+      'base',
+      'url',
+      'openai',
+      'compatible',
+    ],
+    Component: ModelProviders,
+  },
   // Data controls · API keys
   {
     id: 'providerApiKeys',
@@ -760,16 +780,6 @@ export const registry: SettingEntry[] = [
     section: 'apiKeys',
     labelKey: 'com_ui_settings_label_revoke_keys',
     Component: RevokeKeys,
-  },
-  // Langfuse
-  {
-    id: 'langfuseConnection',
-    tab: SettingsTabValues.LANGFUSE,
-    section: 'langfuse',
-    labelKey: 'com_ui_langfuse_title',
-    keywords: ['langfuse', 'observability', 'tracing', 'telemetry', 'traces'],
-    show: (ctx) => ctx.langfuseConnectionAccess || ctx.langfusePromptSyncAccess === true,
-    Component: LangfuseConnection,
   },
   // Data controls · Danger zone
   {

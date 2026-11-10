@@ -20,7 +20,9 @@ const presets = require('./presets');
 const projects = require('./projects');
 const prompts = require('./prompts');
 const schedules = require('./schedules');
+const superagent = require('./superagent');
 const skills = require('./skills');
+const workspace = require('./workspace');
 const balance = require('./balance');
 const actions = require('./actions');
 const apiKeys = require('./apiKeys');
@@ -28,6 +30,7 @@ const banner = require('./banner');
 const openapi = require('./openapi');
 const search = require('./search');
 const models = require('./models');
+const modelProviders = require('./modelProviders');
 const convos = require('./convos');
 const pullRequests = require('./pullRequests');
 const traces = require('./traces');
@@ -78,10 +81,13 @@ module.exports = {
   search,
   config,
   models,
+  modelProviders,
   prompts,
   projects,
   schedules,
+  superagent,
   skills,
+  workspace,
   actions,
   presets,
   balance,

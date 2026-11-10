@@ -1,4 +1,8 @@
-export const COLLAPSED_WIDTH = 52;
+/**
+ * Width of the icon rail. Every entry now carries its label beside the icon,
+ * so the collapsed sidebar is as wide as the rail rather than an icon strip.
+ */
+export const COLLAPSED_WIDTH = 168;
 export const EXPANDED_MIN = 360;
 
 /**

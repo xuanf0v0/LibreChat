@@ -72,6 +72,7 @@ jest.mock('@librechat/client', () => ({
   HoverCardPortal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   HoverCardContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   HoverCardTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  labelVariants: () => '',
 }));
 
 function Wrapper({ provider, children }: { provider?: string; children: React.ReactNode }) {

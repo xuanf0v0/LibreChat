@@ -27,6 +27,8 @@ function getItemLabel<T extends string>(item: MultiSelectItem<T>): string {
 interface MultiSelectProps<T extends string> {
   items: MultiSelectItem<T>[];
   label?: string;
+  /** Accessible name for the trigger when a visible `label` is rendered outside the picker. */
+  ariaLabel?: string;
   placeholder?: string;
   onSelectedValuesChange?: (values: T[]) => void;
   renderSelectedValues?: (
@@ -84,6 +86,7 @@ function defaultRender<T extends string>(
 export default function MultiSelect<T extends string>({
   items,
   label,
+  ariaLabel,
   placeholder = 'Select...',
   onSelectedValuesChange,
   renderSelectedValues = defaultRender,
@@ -145,6 +148,7 @@ export default function MultiSelect<T extends string>({
         )}
         <Select
           ref={selectRef}
+          aria-label={ariaLabel}
           disabled={disabled}
           data-state={isPopoverOpen ? 'open' : 'closed'}
           className={cn(
@@ -172,7 +176,7 @@ export default function MultiSelect<T extends string>({
         </Select>
         <SelectPopover
           role="dialog"
-          aria-label={label || placeholder}
+          aria-label={ariaLabel ?? label ?? placeholder}
           gutter={4}
           sameWidth
           modal

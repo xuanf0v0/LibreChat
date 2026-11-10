@@ -56,6 +56,11 @@ const loadProjectWorkspace = () =>
     Component: m.ProjectWorkspace,
   }));
 
+const loadSuperAgentView = () =>
+  importWithRecovery(() => import('~/components/SuperAgent')).then((m) => ({
+    Component: m.default,
+  }));
+
 const baseEl = document.querySelector('base');
 const baseHref = baseEl?.getAttribute('href') || '/';
 
@@ -187,6 +192,10 @@ export const router = createBrowserRouter(
                 {
                   path: 'projects/:projectId',
                   lazy: loadProjectWorkspace,
+                },
+                {
+                  path: 'super-agent',
+                  lazy: loadSuperAgentView,
                 },
                 {
                   path: 'agents',

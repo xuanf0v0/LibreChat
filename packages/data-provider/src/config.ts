@@ -3454,6 +3454,8 @@ export const interfaceSchema = z
     mascot: true,
     landingHeading: 'entity',
     landingFooter: true,
+    /** Brand hero shown on the empty chat page. */
+    customWelcome: '源予赋能，驾驭边界',
     remoteAgents: {
       use: false,
       create: false,
@@ -3481,11 +3483,13 @@ export const interfaceSchema = z
       pollIntervalMs: 30_000,
       focusedRefreshMs: 300_000,
     },
-    // `schedules` is deliberately ABSENT from this default. It is experimental and
-    // default-off in v1, and zod applies this whole object when `interface` is omitted
-    // from librechat.yaml — including it would silently enable the feature (and permit
-    // billable scheduled runs) on every deployment that never opted in. The PERMISSION
-    // defaults live in updateInterfacePermissions, which is a separate concern.
+    // Auto tasks ship enabled on this branded deployment: the sidebar's
+    // "Auto Tasks" entry (scheduled chats) must be usable out of the box.
+    // Per-role SCHEDULES permissions still gate who may create and run them.
+    schedules: {
+      use: true,
+      create: true,
+    },
     steerArmConfirmationTimeoutMs: DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS,
     queuedTurnReconciliationTimeoutMs: DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS,
     queuedSendLockTimeoutMs: DEFAULT_QUEUED_SEND_LOCK_TIMEOUT_MS,
@@ -4442,10 +4446,53 @@ export const toolCallPreviewsConfigSchema = z.object({
 
 export type TToolCallPreviewsConfig = z.infer<typeof toolCallPreviewsConfigSchema>;
 
+export const superAgentConfigSchema = z
+  .object({
+    /** Maximum number of unfinished Super Agent tasks per user. */
+    maxActiveTasks: z.number().int().min(1).max(50).default(3),
+    /** Maximum worker nodes the planner may create and run concurrently. */
+    maxWorkers: z.number().int().min(1).max(10).default(3),
+    /** Maximum nodes in one task plan. */
+    maxNodes: z.number().int().min(1).max(12).default(12),
+    /** Default agent recursion limit for one worker node. */
+    defaultMaxSteps: z.number().int().min(1).max(100).default(25),
+    /** Default wall-clock timeout for one worker node. */
+    defaultTimeoutMs: z.number().int().min(1_000).max(600_000).default(300_000),
+    /** Default number of times a failed task plan may be replaced. */
+    defaultMaxReplans: z.number().int().min(0).max(3).default(1),
+    /** Default token budget for one task. */
+    defaultMaxTokens: z.number().int().min(1_000).max(2_000_000).default(200_000),
+    /** Default wall-clock budget for one task. */
+    defaultMaxDurationMs: z.number().int().min(60_000).max(86_400_000).default(3_600_000),
+    defaultPlannerMaxTokens: z.number().int().min(500).max(1_000_000).default(40_000),
+    defaultWorkerMaxTokens: z.number().int().min(500).max(2_000_000).default(160_000),
+    defaultEvaluatorMaxTokens: z.number().int().min(500).max(1_000_000).default(40_000),
+  })
+  .strict()
+  .prefault({});
+
+export const trinityConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    url: z.string().url().optional(),
+    apiKey: z.string().optional(),
+    apiKeyPreview: z.string().optional(),
+    agentName: z.string().optional(),
+    timeoutMs: z.number().int().min(1_000).max(600_000).default(300_000),
+  })
+  .strict()
+  .prefault({});
+
+export type TTrinityConfig = z.infer<typeof trinityConfigSchema>;
+
+export type TSuperAgentConfig = z.infer<typeof superAgentConfigSchema>;
+
 export const configSchema = z.object({
   version: z.string(),
   telemetry: telemetrySchema.optional(),
   clientLimits: clientLimitsSchema.optional(),
+  superAgent: superAgentConfigSchema.optional(),
+  trinity: trinityConfigSchema.optional(),
   permissions: z
     .object({
       maxWriteAttempts: permissionWriteAttemptsSchema,
@@ -5540,10 +5587,6 @@ export enum SettingsTabValues {
    */
   SPEECH = 'speech',
   /**
-   * Tab for Langfuse Settings
-   */
-  LANGFUSE = 'langfuse',
-  /**
    * Tab for Beta Features
    */
   BETA = 'beta',
@@ -5551,6 +5594,10 @@ export enum SettingsTabValues {
    * Tab for Data Controls
    */
   DATA = 'data',
+  /**
+   * Tab for user-managed model providers
+   */
+  PROVIDERS = 'providers',
   /**
    * Tab for Balance Settings
    */

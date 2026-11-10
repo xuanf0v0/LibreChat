@@ -17,6 +17,8 @@ import { createSkillDeletionModel } from './skillDeletion';
 import { createAgentCategoryModel } from './agentCategory';
 import { createResourceLockModel } from './resourceLock';
 import { createChatProjectModel } from './chatProject';
+import { createSuperAgentTaskModel } from './superagent';
+import { createSuperAgentWorkerModel } from './superagentWorker';
 import { createAgentApiKeyModel } from './agentApiKey';
 import { createTransactionModel } from './transaction';
 import { createPromptGroupModel } from './promptGroup';
@@ -64,6 +66,8 @@ export function createModels(mongoose: typeof import('mongoose')): {
   Balance: ReturnType<typeof createBalanceModel>;
   Conversation: ReturnType<typeof createConversationModel>;
   ChatProject: ReturnType<typeof createChatProjectModel>;
+  SuperAgentTask: ReturnType<typeof createSuperAgentTaskModel>;
+  SuperAgentWorker: ReturnType<typeof createSuperAgentWorkerModel>;
   CodeEnvironment: ReturnType<typeof createCodeEnvironmentModel>;
   Message: ReturnType<typeof createMessageModel>;
   SubagentContent: ReturnType<typeof createSubagentContentModel>;
@@ -119,6 +123,8 @@ export function createModels(mongoose: typeof import('mongoose')): {
     Balance: createBalanceModel(mongoose),
     Conversation: createConversationModel(mongoose),
     ChatProject: createChatProjectModel(mongoose),
+    SuperAgentTask: createSuperAgentTaskModel(mongoose),
+    SuperAgentWorker: createSuperAgentWorkerModel(mongoose),
     CodeEnvironment: createCodeEnvironmentModel(mongoose),
     Message: createMessageModel(mongoose),
     SubagentContent: createSubagentContentModel(mongoose),

@@ -25,7 +25,6 @@ const ctx: SettingsContextValue = {
   aboutEnabled: false,
   mascotAllowed: true,
   engineTTS: 'browser',
-  langfuseConnectionAccess: false,
   adminPanelURL: '',
   replyTabBadgeAllowed: true,
   replyNotificationsAllowed: true,
@@ -57,21 +56,6 @@ describe('Sidebar', () => {
   it('shows the About tab when build info is enabled', () => {
     setup({ aboutEnabled: true });
     expect(screen.getByText('About')).toBeInTheDocument();
-  });
-
-  it('shows the Langfuse tab when Langfuse is available to the user', () => {
-    setup({ langfuseConnectionAccess: true });
-    expect(screen.getByText('Langfuse')).toBeInTheDocument();
-  });
-
-  it('shows the Langfuse tab with prompt access and no connection access', () => {
-    setup({ langfuseConnectionAccess: false, langfusePromptSyncAccess: true });
-    expect(screen.getByText('Langfuse')).toBeInTheDocument();
-  });
-
-  it('hides the Langfuse tab without Langfuse connection access', () => {
-    setup({ langfuseConnectionAccess: false });
-    expect(screen.queryByText('Langfuse')).not.toBeInTheDocument();
   });
 
   it('forwards typing to onQueryChange', async () => {

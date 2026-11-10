@@ -1,0 +1,1 @@
+export { SkillPlazaPanel } from './SkillPlazaPanel';

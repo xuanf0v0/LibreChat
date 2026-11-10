@@ -27,7 +27,6 @@ const settingsContext: SettingsContextValue = {
   aboutEnabled: false,
   mascotAllowed: true,
   engineTTS: 'browser',
-  langfuseConnectionAccess: false,
   adminPanelURL: '',
   replyTabBadgeAllowed: true,
   replyNotificationsAllowed: true,
@@ -116,54 +115,6 @@ describe('settings registry', () => {
         ).toBe(false);
       },
     );
-  });
-
-  describe('Langfuse connection visibility', () => {
-    const langfuseEntry = registry.find((entry) => entry.id === 'langfuseConnection');
-
-    it('places the connection in the Langfuse tab', () => {
-      expect(langfuseEntry).toMatchObject({
-        tab: SettingsTabValues.LANGFUSE,
-        section: 'langfuse',
-      });
-    });
-
-    it('shows the connection when the user can manage it', () => {
-      expect(
-        langfuseEntry?.show?.({
-          ...settingsContext,
-          langfuseConnectionAccess: true,
-        }),
-      ).toBe(true);
-    });
-
-    it('shows prompt settings without connection access', () => {
-      expect(
-        langfuseEntry?.show?.({
-          ...settingsContext,
-          langfuseConnectionAccess: false,
-          langfusePromptSyncAccess: true,
-        }),
-      ).toBe(true);
-    });
-
-    it('hides the connection without Langfuse config access', () => {
-      expect(
-        langfuseEntry?.show?.({
-          ...settingsContext,
-          langfuseConnectionAccess: false,
-        }),
-      ).toBe(false);
-    });
-
-    it('shows the connection in single-tenant mode without fanout', () => {
-      expect(
-        langfuseEntry?.show?.({
-          ...settingsContext,
-          langfuseConnectionAccess: true,
-        }),
-      ).toBe(true);
-    });
   });
 
   describe('stateful workspace default visibility', () => {

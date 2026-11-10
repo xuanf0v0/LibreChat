@@ -11,6 +11,8 @@ export * from './openidRefreshFlight';
 export * from './resourceLock';
 export * from './convo';
 export * from './chatProject';
+export * from './superagent';
+export * from './superagentWorker';
 export * from './session';
 export * from './passkey';
 export * from './balance';

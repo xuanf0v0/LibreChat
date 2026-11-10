@@ -1,9 +1,9 @@
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
 import isEqual from 'lodash/isEqual';
-import { Button, useToastContext } from '@librechat/client';
+import { Plus, Sparkles } from 'lucide-react';
 import { useWatch, useForm, FormProvider } from 'react-hook-form';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
+import { Button, TooltipAnchor, useToastContext } from '@librechat/client';
 import {
   MemoryScope,
   SystemRoles,
@@ -41,13 +41,15 @@ import {
 } from '~/utils';
 import { pruneAgentModelParameters, resolveAgentParameterSettings } from './parameters';
 import { useResourcePermissions } from '~/hooks/useResourcePermissions';
-import { useSelectAgent, useLocalize, useAuthContext } from '~/hooks';
 import { useAgentPanelContext } from '~/Providers/AgentPanelContext';
 import { resolveCapabilityTools } from './Tools/items/capabilities';
 import ResetApprovals from '~/components/Agents/ResetApprovals';
+import { useLocalize, useAuthContext } from '~/hooks';
 import AgentPanelSkeleton from './AgentPanelSkeleton';
 import AdvancedPanel from './Advanced/AdvancedPanel';
 import { Panel, isEphemeralAgent } from '~/common';
+import GenerateAgent from './GenerateAgent';
+import AgentModelCategory from './AgentModelCategory';
 import AgentConfig from './AgentConfig';
 import AgentSelect from './AgentSelect';
 import AgentFooter from './AgentFooter';
@@ -481,8 +483,6 @@ export default function AgentPanel() {
       agentsConfig?.statefulCodeSessions?.allowedEnvironments,
     ) ?? 'user';
 
-  const { onSelect: onSelectAgent } = useSelectAgent();
-
   const modelsQuery = useGetModelsQuery({ refetchOnMount: 'always' });
   const basicAgentQuery = useGetAgentByIdQuery(current_agent_id);
 
@@ -492,6 +492,7 @@ export default function AgentPanel() {
   );
 
   const canEdit = hasPermission(PermissionBits.EDIT);
+  const [generateOpen, setGenerateOpen] = useState(false);
   /** Same editor-visibility bypass `canEditAgent` grants admins below: an admin can open
    *  the editor for a linked agent even without ACL EDIT on it. */
   const hasEditorAccess = canEdit || user?.role === SystemRoles.ADMIN;
@@ -960,12 +961,6 @@ export default function AgentPanel() {
     ],
   );
 
-  const handleSelectAgent = useCallback(() => {
-    if (agent_id) {
-      onSelectAgent(agent_id);
-    }
-  }, [agent_id, onSelectAgent]);
-
   const canEditAgent = useMemo(() => {
     if (!agentQuery.data?.id) {
       return true;
@@ -978,12 +973,12 @@ export default function AgentPanel() {
     <FormProvider {...methods}>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-1 scrollbar-gutter-stable flex-col px-3 pt-2 pb-3"
-        aria-label="Agent configuration form"
+        className="flex h-full min-h-0 flex-col"
+        aria-label={localize('com_sidepanel_agent_builder')}
       >
-        <div className="flex-1">
-          <div className="flex w-full flex-wrap gap-2">
-            <div className="w-full">
+        <div className="shrink-0 px-3 pt-2">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
               <AgentSelect
                 createMutation={create}
                 agentQuery={agentQuery}
@@ -993,36 +988,63 @@ export default function AgentPanel() {
                 instructionsPromptReady={instructionsPromptStatus === 'ready'}
               />
             </div>
-            {agent_id && (
-              <div className="flex w-full gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-center"
-                  onClick={() => {
-                    reset(getDefaultAgentFormValues(defaultStatefulCodeEnvironment));
-                    setCurrentAgentId(undefined);
-                  }}
-                  disabled={agentQuery.isInitialLoading}
-                  aria-label={localize('com_ui_create_new_agent')}
-                >
-                  <Plus className="me-1 h-4 w-4" aria-hidden="true" />
-                  {localize('com_ui_create_new_agent')}
-                </Button>
-                <Button
-                  variant="submit"
-                  disabled={isEphemeralAgent(agent_id) || agentQuery.isInitialLoading}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleSelectAgent();
-                  }}
-                  aria-label={localize('com_ui_select_agent')}
-                >
-                  {localize('com_ui_select')}
-                </Button>
-              </div>
+            {agent_id ? (
+              <TooltipAnchor
+                side="top"
+                description={localize('com_ui_create_new_agent')}
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label={localize('com_ui_create_new_agent')}
+                    onClick={() => {
+                      reset(getDefaultAgentFormValues(defaultStatefulCodeEnvironment));
+                      setCurrentAgentId(undefined);
+                    }}
+                    disabled={agentQuery.isInitialLoading}
+                  >
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                }
+              />
+            ) : (
+              canEditAgent &&
+              !agentQuery.isInitialLoading && (
+                <TooltipAnchor
+                  side="top"
+                  description={localize('com_ui_ai_agent_title')}
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={localize('com_ui_ai_agent_title')}
+                      aria-expanded={generateOpen}
+                      aria-controls="ai-agent-generator"
+                      onClick={() => setGenerateOpen((open) => !open)}
+                      disabled={agentQuery.isInitialLoading}
+                    >
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  }
+                />
+              )
             )}
           </div>
+        </div>
+        <div className="min-h-0 flex-1 scrollbar-gutter-stable overflow-y-auto px-3 pt-3 pb-3">
+          {!agent_id &&
+            canEditAgent &&
+            !agentQuery.isInitialLoading &&
+            activePanel === Panel.builder && (
+              <div className="@container">
+                <AgentModelCategory />
+              </div>
+            )}
+          {generateOpen && !agent_id && canEditAgent && !agentQuery.isInitialLoading && (
+            <GenerateAgent />
+          )}
           {agentQuery.isInitialLoading && <AgentPanelSkeleton />}
           {!canEditAgent && !agentQuery.isInitialLoading && (
             <div className="flex h-[30vh] w-full items-center justify-center">
@@ -1046,6 +1068,7 @@ export default function AgentPanel() {
           )}
           {canEditAgent && !agentQuery.isInitialLoading && activePanel === Panel.builder && (
             <AgentConfig
+              showModelCategory={Boolean(agent_id)}
               instructionsPromptStatus={instructionsPromptStatus}
               onRetryInstructionsPrompt={retryInstructionsPrompt}
             />
@@ -1055,14 +1078,16 @@ export default function AgentPanel() {
           )}
         </div>
         {canEditAgent && !agentQuery.isInitialLoading && (
-          <AgentFooter
-            createMutation={create}
-            updateMutation={update}
-            isAvatarUploading={isAvatarUploadInFlight || uploadAvatarMutation.isLoading}
-            activePanel={activePanel}
-            setActivePanel={setActivePanel}
-            setCurrentAgentId={setCurrentAgentId}
-          />
+          <div className="bg-surface-sidebar border-border-light shrink-0 border-t px-3 py-2">
+            <AgentFooter
+              createMutation={create}
+              updateMutation={update}
+              isAvatarUploading={isAvatarUploadInFlight || uploadAvatarMutation.isLoading}
+              activePanel={activePanel}
+              setActivePanel={setActivePanel}
+              setCurrentAgentId={setCurrentAgentId}
+            />
+          </div>
         )}
       </form>
     </FormProvider>

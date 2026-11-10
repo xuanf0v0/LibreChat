@@ -6,6 +6,7 @@ import {
   SecretInput,
   Spinner,
   Button,
+  FieldMessage,
   Input,
   isDark,
   floatingLabel,
@@ -65,9 +66,7 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
   const renderError = (fieldName: string) => {
     const errorMessage = errors[fieldName]?.message;
     return errorMessage ? (
-      <span role="alert" className="text-text-destructive mt-1 text-sm">
-        {String(errorMessage)}
-      </span>
+      <FieldMessage id={`${fieldName}-error`} message={String(errorMessage)} />
     ) : null;
   };
 
@@ -84,14 +83,16 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
       {showResendLink && (
         <div className="border-status-success-border bg-status-success-subtle text-text-secondary mt-2 rounded-md border px-3 py-2 text-sm">
           {localize('com_auth_email_verification_resend_prompt')}
-          <button
+          <Button
             type="button"
-            className="text-link ms-2 hover:underline"
+            variant="link-accent"
+            size="bare"
+            className="ms-2"
             onClick={handleResendEmail}
             disabled={resendLinkMutation.isLoading}
           >
             {localize('com_auth_email_resend_link')}
-          </button>
+          </Button>
         </div>
       )}
       <form
@@ -116,6 +117,7 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
                   : (value) => validateEmail(value, localize('com_auth_email_pattern')),
               })}
               aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               variant="floating"
               placeholder=" "
             />
@@ -143,6 +145,7 @@ const LoginForm: React.FC<TLoginFormProps> = ({ onSubmit, startupConfig, error, 
                 maxLength: { value: 128, message: localize('com_auth_password_max_length') },
               })}
               aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'password-error' : undefined}
               variant="floating"
               placeholder=" "
               label={localize('com_auth_password')}

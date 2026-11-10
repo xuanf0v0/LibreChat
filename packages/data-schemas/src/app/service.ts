@@ -2,6 +2,7 @@ import {
   AgentCapabilities,
   EModelEndpoint,
   chatProjectsConfigSchema,
+  trinityConfigSchema,
   configSchema,
   filtersConfigSchema,
   conversationListConfigSchema,
@@ -208,6 +209,8 @@ export const AppService = async (params?: {
   const filters = loadFiltersConfig(config);
   const messageFilter = config.messageFilter;
   const langfuse = loadLangfuseConfig(config);
+  const trinity =
+    config.trinity == null ? undefined : trinityConfigSchema.safeParse(config.trinity).data;
 
   const defaultConfig = {
     ocr,
@@ -237,6 +240,7 @@ export const AppService = async (params?: {
     includedTools,
     filters,
     langfuse,
+    trinity,
     messageFilter,
     summarization,
     availableTools,

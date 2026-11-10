@@ -35,6 +35,7 @@ export * from './schemas';
 export * from './types/subagents';
 export * from './types/background';
 export * from './types/pullRequest';
+export * from './types/modelProviders';
 
 export type TMessages = TMessage[];
 
@@ -1556,3 +1557,5 @@ export type TLangfusePromptSyncResult = {
    *  possible outcome. */
   complete?: boolean;
 };
+
+export * from './types/superagent';

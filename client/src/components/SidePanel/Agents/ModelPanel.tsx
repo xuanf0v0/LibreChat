@@ -1,10 +1,11 @@
 import React, { useMemo, useEffect } from 'react';
-import { ChevronLeft, RotateCcw } from 'lucide-react';
-import { Alert, Button, ControlCombobox } from '@librechat/client';
+import { RotateCcw } from 'lucide-react';
 import { useFormContext, useWatch, Controller } from 'react-hook-form';
+import { Alert, Button, ControlCombobox, Label } from '@librechat/client';
 import {
   Permissions,
   alternateName,
+  EModelEndpoint,
   PermissionTypes,
   LocalStorageKeys,
   resolveModelCatalogKey,
@@ -19,6 +20,7 @@ import { useModelReasoning } from '~/hooks/Endpoint/useModelReasoning';
 import Sections from '~/components/SidePanel/Parameters/Sections';
 import { useLocalize, useHasAccess } from '~/hooks';
 import { useLiveAnnouncer } from '~/Providers';
+import PanelHeader from './PanelHeader';
 import { Panel } from '~/common';
 import { cn } from '~/utils';
 
@@ -141,37 +143,20 @@ export default function ModelPanel({
 
   return (
     <div className="mb-1 flex w-full flex-col gap-3 text-sm">
-      <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-1">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setActivePanel(Panel.builder)}
-          aria-label={localize('com_ui_back_to_builder')}
-          className="text-text-secondary hover:bg-surface-secondary shrink-0 rounded-xl"
-        >
-          <ChevronLeft className="h-5 w-5 rtl:-scale-x-100" strokeWidth={1.75} aria-hidden="true" />
-        </Button>
-        <h2 className="text-text-primary text-center text-base font-semibold">
-          {localize('com_ui_model_parameters')}
-        </h2>
-        <span
-          aria-hidden="true"
-          className="size-theme-button min-h-theme-target min-w-theme-target"
-        />
-      </header>
+      <PanelHeader
+        title={localize('com_ui_model_parameters')}
+        onBack={() => setActivePanel(Panel.builder)}
+      />
       <div>
         {/* Endpoint aka Provider for Agents */}
         <div className="mb-3" aria-busy={modelsPending}>
-          <label
+          <Label
             id="provider-label"
-            className={cn(
-              'text-text-secondary text-2xs mb-1 block font-medium tracking-wide uppercase',
-              modelsPending && 'opacity-60',
-            )}
+            className={cn('mb-1', modelsPending && 'opacity-60')}
             htmlFor="provider"
           >
             {localize('com_ui_provider')} <span className="text-text-destructive">*</span>
-          </label>
+          </Label>
           <Controller
             name="provider"
             control={control}
@@ -191,7 +176,11 @@ export default function ModelPanel({
                   <ControlCombobox
                     selectId="provider"
                     selectedValue={value}
-                    displayValue={alternateName[display] ?? display}
+                    displayValue={
+                      display === EModelEndpoint.agents
+                        ? localize('com_agents_my_agents')
+                        : (alternateName[display] ?? display)
+                    }
                     selectPlaceholder={localize('com_ui_select_provider')}
                     searchPlaceholder={localize('com_ui_select_search_provider')}
                     setValue={(value) => {
@@ -231,16 +220,13 @@ export default function ModelPanel({
         </div>
         {/* Model */}
         <div className="mb-3" aria-busy={modelsPending}>
-          <label
+          <Label
             id="model-label"
-            className={cn(
-              'text-text-secondary text-2xs mb-1 block font-medium tracking-wide uppercase',
-              (!provider || modelsPending) && 'opacity-60',
-            )}
+            className={cn('mb-1', (!provider || modelsPending) && 'opacity-60')}
             htmlFor="model"
           >
             {localize('com_ui_model')} <span className="text-text-destructive">*</span>
-          </label>
+          </Label>
           <Controller
             name="model"
             control={control}

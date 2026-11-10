@@ -69,6 +69,7 @@ export * from './types/subagents';
 export * from './types/background';
 export * from './types/pullRequest';
 export * from './types/queuedTurns';
+export * from './types/superagent';
 /* access permissions */
 export * from './accessPermissions';
 /* query/mutation keys */
@@ -81,8 +82,11 @@ export {
   apiBaseUrl,
   sharedFileDownload,
   buildLoginRedirectUrl,
+  superAgentTaskEvents,
+  superAgentTrinityHealth,
 } from './api-endpoints';
 export { default as request } from './request';
+export type { WorkspaceEntry, WorkspaceListing } from './data-service';
 export { dataService };
 import * as dataService from './data-service';
 /* provider identity */

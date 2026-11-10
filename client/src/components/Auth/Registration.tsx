@@ -9,6 +9,7 @@ import {
   SecretInput,
   Spinner,
   Button,
+  FieldMessage,
   Input,
   isDark,
   floatingLabel,
@@ -91,6 +92,7 @@ const Registration: React.FC = () => {
               aria-label={fieldLabel}
               {...field}
               aria-invalid={!!errors[id]}
+              aria-describedby={errors[id] ? `${id}-error` : undefined}
               variant="floating"
               placeholder=" "
               data-testid={id}
@@ -106,6 +108,7 @@ const Registration: React.FC = () => {
                 aria-label={fieldLabel}
                 {...field}
                 aria-invalid={!!errors[id]}
+                aria-describedby={errors[id] ? `${id}-error` : undefined}
                 variant="floating"
                 placeholder=" "
                 data-testid={id}
@@ -117,9 +120,7 @@ const Registration: React.FC = () => {
           )}
         </div>
         {errors[id] && (
-          <span role="alert" className="text-text-destructive mt-1 text-sm">
-            {String(errors[id]?.message) ?? ''}
-          </span>
+          <FieldMessage id={`${id}-error`} message={String(errors[id]?.message ?? '')} />
         )}
       </div>
     );

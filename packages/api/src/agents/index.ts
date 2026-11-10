@@ -36,6 +36,7 @@ export * from './lazySubagents';
 export * from './lazyHistory';
 export * from './memory';
 export * from './management';
+export * from './generate';
 export * from './failures';
 export * from './marketplace';
 export * from './reads';

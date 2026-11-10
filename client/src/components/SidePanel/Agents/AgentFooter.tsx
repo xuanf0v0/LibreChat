@@ -9,15 +9,21 @@ import {
   PermissionTypes,
 } from 'librechat-data-provider';
 import type { AgentForm, AgentPanelProps } from '~/common';
-import { useLocalize, useAuthContext, useHasAccess, useResourcePermissions } from '~/hooks';
+import {
+  useLocalize,
+  useAuthContext,
+  useHasAccess,
+  useSelectAgent,
+  useResourcePermissions,
+} from '~/hooks';
 import { GenericGrantAccessDialog } from '~/components/Sharing';
 import { useUpdateAgentMutation } from '~/data-provider';
 import AdvancedButton from './Advanced/AdvancedButton';
 import VersionButton from './Version/VersionButton';
+import { Panel, isEphemeralAgent } from '~/common';
 import DuplicateAgent from './DuplicateAgent';
 import AdminSettings from './AdminSettings';
 import DeleteButton from './DeleteButton';
-import { Panel } from '~/common';
 
 export default function AgentFooter({
   activePanel,
@@ -35,6 +41,7 @@ export default function AgentFooter({
 }) {
   const localize = useLocalize();
   const { user } = useAuthContext();
+  const { onSelect: onSelectAgent } = useSelectAgent();
 
   const methods = useFormContext<AgentForm>();
 
@@ -75,9 +82,10 @@ export default function AgentFooter({
   );
 
   const showButtons = activePanel === Panel.builder;
+  const canSelect = agent_id != null && !isEphemeralAgent(agent_id);
 
   return (
-    <div className="mb-1 flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-2">
       {showButtons && (
         <div className={`grid gap-2 ${agent_id ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <AdvancedButton setActivePanel={setActivePanel} />
@@ -86,11 +94,12 @@ export default function AgentFooter({
       )}
       {user?.role === SystemRoles.ADMIN && showButtons && <AdminSettings />}
       {/* Context Button */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-1.5">
         {(agent?.author === user?.id || user?.role === SystemRoles.ADMIN || canDeleteThisAgent) &&
           !permissionsLoading && (
             <DeleteButton
               agent_id={agent_id}
+              agentName={agent?.name}
               setCurrentAgentId={setCurrentAgentId}
               createMutation={createMutation}
             />
@@ -129,10 +138,34 @@ export default function AgentFooter({
           )}
         {(agent?.author === user?.id || user?.role === SystemRoles.ADMIN || canEditThisAgent) &&
           !permissionsLoading && <DuplicateAgent agent_id={agent_id} />}
-        {/* Submit Button */}
+      </div>
+      {canSelect ? (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9"
+            disabled={isSaving}
+            onClick={() => void onSelectAgent(agent_id)}
+            aria-label={localize('com_ui_select_agent')}
+          >
+            {localize('com_ui_select')}
+          </Button>
+          <Button
+            variant="submit"
+            className="h-9"
+            type="submit"
+            disabled={isSaving}
+            aria-busy={isSaving}
+            aria-label={saveLabel}
+          >
+            {renderSaveButton()}
+          </Button>
+        </div>
+      ) : (
         <Button
           variant="submit"
-          className="h-9 w-full font-semibold"
+          className="h-9 w-full"
           type="submit"
           disabled={isSaving}
           aria-busy={isSaving}
@@ -140,7 +173,7 @@ export default function AgentFooter({
         >
           {renderSaveButton()}
         </Button>
-      </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ const { generateCheckAccess } = require('@librechat/api');
 const { PermissionTypes, Permissions, PermissionBits } = require('librechat-data-provider');
 const { configMiddleware, canAccessAgentResource } = require('~/server/middleware');
 const v1 = require('~/server/controllers/agents/v1');
+const generate = require('~/server/controllers/agents/generate');
 const { getRoleByName } = require('~/models');
 const actions = require('./actions');
 const tools = require('./tools');
@@ -45,6 +46,13 @@ router.get('/categories', v1.getAgentCategories);
  * @returns {Agent} 201 - Success response - application/json
  */
 router.post('/', checkAgentCreate, configMiddleware, v1.createAgent);
+
+/**
+ * Generates an editable agent draft with the user's configured model.
+ * The draft is not persisted; the client creates the agent after review.
+ * @route POST /agents/generate
+ */
+router.post('/generate', checkAgentCreate, configMiddleware, generate);
 
 /**
  * Retrieves basic agent information (VIEW permission required).

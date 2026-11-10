@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Button, Radio } from '@librechat/client';
 import { ChevronRight, Plus, X } from 'lucide-react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { Button, EmptyState, Radio } from '@librechat/client';
 import { SkillsScope, resolveAgentSkillsScope } from 'librechat-data-provider';
 import type { TSkillSummary } from 'librechat-data-provider';
 import type { ReactNode } from 'react';
@@ -12,6 +12,7 @@ import { useLocalize, useAuthContext, useSkillActiveState } from '~/hooks';
 import { useSkillsInfiniteQuery } from '~/data-provider';
 import { buildSkillItems } from './items/catalog';
 import { getIconForItem } from './items/icons';
+import PanelSection from '../PanelSection';
 import { cn } from '~/utils';
 
 interface Props {
@@ -263,15 +264,11 @@ export default function SkillsSection({ items, onInfo, onRemove, onAdd }: Props)
   const showAddInHeader = mode === SkillsScope.selected && items.length > 0;
 
   return (
-    <div className="mb-3 flex w-full flex-col">
-      <div className="flex items-center justify-between gap-3">
-        <span
-          id="skills-mode-label"
-          className="text-text-secondary block text-xs font-medium tracking-wide uppercase"
-        >
-          {localize('com_ui_skills')}
-        </span>
-        <div className="flex shrink-0 items-center gap-1.5">
+    <PanelSection
+      id="skills-mode-label"
+      title={localize('com_ui_skills')}
+      action={
+        <>
           {showAddInHeader && (
             <button
               type="button"
@@ -289,9 +286,9 @@ export default function SkillsSection({ items, onInfo, onRemove, onAdd }: Props)
             size="sm"
             aria-labelledby="skills-mode-label"
           />
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {/** One animator for the whole body: opening from Off, swapping All for
        *   Selected, and expanding the available list all tween the same
        *   measured height. */}
@@ -407,24 +404,22 @@ export default function SkillsSection({ items, onInfo, onRemove, onAdd }: Props)
                 ))}
               </ul>
             )}
-            {/** Same dashed card `dev` and `main` use for "No skills yet". Only
-             *   the empty state: once rows exist, Add lives in the header. */}
+            {/** Only the empty state: once rows exist, Add lives in the header. */}
             {items.length === 0 && (
-              <button
-                type="button"
-                onClick={onAdd}
-                className="border-border-medium text-text-secondary hover:border-border-heavy hover:bg-surface-secondary hover:text-text-primary focus-visible:ring-ring-primary flex w-full flex-col items-center gap-1 rounded-xl border border-dashed px-2 py-4 transition-colors focus:outline-hidden focus-visible:ring-2"
-              >
-                <Plus className="h-4 w-4" aria-hidden="true" />
-                <span className="text-xs">{localize('com_ui_skills_add_row')}</span>
-                <span className="text-text-secondary text-2xs">
-                  {localize('com_ui_skills_empty_hint')}
-                </span>
-              </button>
+              <EmptyState
+                icon={Plus}
+                title={localize('com_ui_skills_empty')}
+                description={localize('com_ui_skills_empty_hint')}
+                action={
+                  <Button variant="subtle" size="sm" onClick={onAdd}>
+                    {localize('com_ui_skills_add_row')}
+                  </Button>
+                }
+              />
             )}
           </div>
         )}
       </MorphHeight>
-    </div>
+    </PanelSection>
   );
 }

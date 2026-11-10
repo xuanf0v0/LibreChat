@@ -77,11 +77,13 @@ import AskUserQuestionPopover from './AskUserQuestionPopover';
 import useComposerItems from '~/hooks/Input/useComposerItems';
 import useAttachTarget from '~/hooks/Input/useAttachTarget';
 import { chatDirectionAtom } from '~/store/chatDirection';
+import { workspaceFileAtom, workspacePathAtom } from '~/store/workspace';
 import ProjectLandingChip from '../ProjectLandingChip';
 import useHasAccess from '~/hooks/Roles/useHasAccess';
 import useDictation from '~/hooks/Input/useDictation';
 import { useGetStartupConfig } from '~/data-provider';
 import CodeWorkspaceMenu from './CodeWorkspaceMenu';
+import WorkspaceChip from './WorkspaceChip';
 import CodeApprovalMenu from './CodeApprovalMenu';
 import TextareaHeader from './TextareaHeader';
 import PromptsCommand from './PromptsCommand';
@@ -194,6 +196,8 @@ const ChatForm = memo(function ChatForm({
   const SpeechToText = useRecoilValue(store.speechToText);
   const TextToSpeech = useRecoilValue(store.textToSpeech);
   const chatDirection = useAtomValue(chatDirectionAtom);
+  const workspacePath = useAtomValue(workspacePathAtom);
+  const workspaceFile = useAtomValue(workspaceFileAtom);
   const automaticPlayback = useRecoilValue(store.automaticPlayback);
   const maximizeChatSpace = useRecoilValue(store.maximizeChatSpace);
   const { isTemporary } = useChatSettings();
@@ -712,13 +716,24 @@ const ChatForm = memo(function ChatForm({
    *  queued follow-up about to start), then an ordinary send: the same route
    *  for typed, dictated, and shortcut-bound submissions. */
   const submitComposerText = useCallback(
-    (data: { text: string }): false | void =>
-      submitFromComposer(
+    (data: { text: string }): false | void => {
+      /** The chosen workspace reaches the model as text, because that is the
+       *  only channel the agent endpoint carries for a persistent agent: the
+       *  filesystem tools take paths, and neither `promptPrefix` nor a request
+       *  field survives into a stored agent's instructions. Stating it once at
+       *  the top of the turn is enough — the tools then act on it. */
+      const workspaceNote =
+        workspacePath == null
+          ? ''
+          : `[工作区] ${workspaceFile ?? workspacePath}\n`;
+      return submitFromComposer(
         {
           answerMode,
           steering,
           submitMessage: (message) => {
-            const result = submitMessage(message);
+            const result = submitMessage(
+              workspaceNote === '' ? message : { ...message, text: workspaceNote + message.text },
+            );
             if (result !== false) {
               clearAllDrafts(getPendingDraftId(index));
             }
@@ -727,8 +742,17 @@ const ChatForm = memo(function ChatForm({
           reset: () => methods.reset(),
         },
         data,
-      ),
-    [answerMode, steering, submitMessage, methods, index],
+      );
+    },
+    [
+      answerMode,
+      steering,
+      submitMessage,
+      methods,
+      index,
+      workspacePath,
+      workspaceFile,
+    ],
   );
 
   return (
@@ -791,6 +815,9 @@ const ChatForm = memo(function ChatForm({
                 </div>
               ) : null}
             </div>
+          )}
+          {index === 0 && (
+            <WorkspaceChip disabled={disableInputs || isSubmitting} />
           )}
           <div className="flex w-full items-center">
             <Mention

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMediaQuery } from '@librechat/client';
+import { Tabs, TabsList, TabsTrigger, useMediaQuery } from '@librechat/client';
 import type t from 'librechat-data-provider';
 import { useLocalize, TranslationKeys } from '~/hooks';
 import { SmartLoader } from './SmartLoader';
@@ -62,8 +62,16 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
     const currentIndex = categories.findIndex((cat) => cat.value === currentCategory);
     let newIndex = currentIndex;
 
-    const isRtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+    const list = e.currentTarget.closest('[role="tablist"]');
+    const directionHost = list?.parentElement?.parentElement ?? e.currentTarget;
+    const isRtl = getComputedStyle(directionHost).direction === 'rtl';
     const key = isRtl ? (ARROW_SWAP[e.key] ?? e.key) : e.key;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
+      return;
+    }
+    /** Radix's own roving focus is LTR-only and activates on arrow; this filter
+     *  bar keeps its 2D, direction-aware movement, so it owns these keys. */
+    e.stopPropagation();
 
     switch (key) {
       case 'ArrowLeft':
@@ -118,44 +126,34 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
 
   // Main tabs content
   const tabsContent = (
-    <div className="w-full">
-      <div
-        className={cn(
-          isSmallScreen
-            ? 'hide-scrollbar flex gap-1.5 overflow-x-auto'
-            : 'flex flex-wrap justify-start gap-1.5',
-        )}
-        role="tablist"
-        aria-label={localize('com_agents_category_tabs_label')}
-        aria-orientation="horizontal"
-      >
-        {categories.map((category, index) => (
-          <button
-            key={category.value}
-            id={`category-tab-${category.value}`}
-            onClick={() => onChange(category.value)}
-            onKeyDown={(e) => handleKeyDown(e, category.value)}
-            className={cn(
-              'focus-visible:ring-text-primary inline-flex h-8 cursor-pointer items-center justify-center rounded-full border px-2.5 text-xs font-medium whitespace-nowrap select-none focus-visible:ring-2 focus-visible:outline-hidden focus-visible:ring-inset',
-              isSmallScreen ? 'min-w-fit shrink-0' : '',
-              activeTab === category.value
-                ? 'border-border-chrome-heavy bg-surface-active-alt text-text-primary'
-                : 'border-border-chrome bg-surface-secondary text-text-secondary hover:bg-surface-hover hover:text-text-primary',
-            )}
-            role="tab"
-            aria-selected={activeTab === category.value}
-            aria-controls={`category-panel-${category.value}`}
-            tabIndex={activeTab === category.value ? 0 : -1}
-            aria-label={localize('com_agents_category_tab_label', {
-              category: getCategoryDisplayName(category),
-              position: index + 1,
-              total: categories.length,
-            })}
-          >
-            {getCategoryDisplayName(category)}
-          </button>
-        ))}
-      </div>
+    <div className={cn('w-full', isSmallScreen && 'hide-scrollbar overflow-x-auto')}>
+      <Tabs value={activeTab} activationMode="manual">
+        <TabsList
+          variant="pills"
+          aria-label={localize('com_agents_category_tabs_label')}
+          className={cn('w-full', isSmallScreen ? 'flex-nowrap' : 'flex-wrap')}
+        >
+          {categories.map((category, index) => (
+            <TabsTrigger
+              key={category.value}
+              id={`category-tab-${category.value}`}
+              value={category.value}
+              variant="pills"
+              tabIndex={activeTab === category.value ? 0 : -1}
+              onClick={() => onChange(category.value)}
+              onKeyDownCapture={(e) => handleKeyDown(e, category.value)}
+              aria-controls={`category-panel-${category.value}`}
+              aria-label={localize('com_agents_category_tab_label', {
+                category: getCategoryDisplayName(category),
+                position: index + 1,
+                total: categories.length,
+              })}
+            >
+              {getCategoryDisplayName(category)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
     </div>
   );
 

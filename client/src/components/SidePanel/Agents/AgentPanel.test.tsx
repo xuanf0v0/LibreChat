@@ -86,6 +86,7 @@ jest.mock('@librechat/client', () => ({
       {children}
     </button>
   ),
+  TooltipAnchor: ({ render }: { render: React.ReactNode }) => render,
   useToastContext: () => ({
     get showToast() {
       return mockShowToast || jest.fn();
@@ -119,6 +120,7 @@ jest.mock('~/utils', () => ({
 jest.mock('~/hooks', () => ({
   useSelectAgent: () => ({ onSelect: jest.fn() }),
   useLocalize: () => (key: string) => key,
+  useGetAgentsConfig: () => ({ agentsConfig: {} }),
   useAuthContext: () => ({ user: { id: 'user-123', role: mockUserRole } }),
 }));
 
@@ -177,6 +179,21 @@ jest.mock('./ModelPanel', () => ({
     mockModelPanelProps = props;
     return <div>{`Model Panel`}</div>;
   },
+}));
+
+jest.mock('./DeleteButton', () => ({
+  __esModule: true,
+  default: () => <button type="button">{`Delete Agent`}</button>,
+}));
+
+jest.mock('./GenerateAgent', () => ({
+  __esModule: true,
+  default: () => <div>{`Generate Agent`}</div>,
+}));
+
+jest.mock('./AgentModelCategory', () => ({
+  __esModule: true,
+  default: () => <div>{`Model and Category`}</div>,
 }));
 
 // Mock AgentFooter to provide a save button
