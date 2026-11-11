@@ -2,15 +2,19 @@ import React, { useCallback, useId, useLayoutEffect, useMemo, useRef } from 'rea
 import { useHref, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Constants, EModelEndpoint } from 'librechat-data-provider';
-import { ArrowUpRight, MessageSquarePlus, Pin, PinOff, X } from 'lucide-react';
+import { ArrowUpRight, MessageSquarePlus, Pin, PinOff, Trash2, X } from 'lucide-react';
 import {
   Button,
   Spinner,
+  OGDialog,
   OGDialogClose,
   OGDialogContent,
   OGDialogDescription,
   OGDialogHeader,
+  OGDialogTemplate,
   OGDialogTitle,
+  OGDialogTrigger,
+  useToastContext,
 } from '@librechat/client';
 import type t from 'librechat-data-provider';
 import {
@@ -26,6 +30,7 @@ import {
 import Description, { getPlainDescription, isHtmlDescription } from '~/components/ui/Description';
 import AgentContact, { resolveAgentContact } from './AgentContact';
 import { useMarketplaceHost } from './MarketplaceContext';
+import { useDeleteAgentMutation } from '~/data-provider';
 import { useFavorites, useLocalize } from '~/hooks';
 import DescriptionWords from './DescriptionWords';
 import { cn, renderAgentAvatar } from '~/utils';
@@ -59,6 +64,11 @@ interface AgentDetailContentProps {
   actionsUnavailable?: boolean;
   /** Keep controls inert while the per-agent access check is still in flight. */
   actionsDisabled?: boolean;
+  /**
+   * Called once the agent is gone, so the grid can drop the selection it is
+   * still holding for the morph — the dialog has nothing left to show.
+   */
+  onDeleted?: () => void;
 }
 
 const AgentDetailContent: React.FC<AgentDetailContentProps> = ({
@@ -68,6 +78,7 @@ const AgentDetailContent: React.FC<AgentDetailContentProps> = ({
   descriptionSource,
   actionsUnavailable = false,
   actionsDisabled = false,
+  onDeleted,
 }) => {
   const localize = useLocalize();
   const navigate = useNavigate();
@@ -76,6 +87,18 @@ const AgentDetailContent: React.FC<AgentDetailContentProps> = ({
   const unavailableRef = useRef<HTMLParagraphElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const id = useId();
+  const { showToast } = useToastContext();
+  const deleteAgent = useDeleteAgentMutation({
+    onSuccess: () => {
+      showToast({ message: localize('com_ui_agent_deleted'), status: 'success' });
+      onDeleted?.();
+    },
+    onError: () => {
+      showToast({ message: localize('com_ui_agent_delete_error'), status: 'error' });
+    },
+  });
+  /** Only an agent this reader may edit offers deletion; a shared one does not. */
+  const canDelete = !actionsUnavailable && !actionsDisabled && agent.isEditable === true;
   const { isFavoriteAgent, toggleFavoriteAgent, isUpdating } = useFavorites();
   const isFavorite = isFavoriteAgent(agent.id);
   const favoriteLabel = localize(isFavorite ? 'com_ui_unpin' : 'com_ui_pin');
@@ -429,6 +452,43 @@ const AgentDetailContent: React.FC<AgentDetailContentProps> = ({
                   </Button>
                   <CopyLink url={shareUrl} disabled={actionsDisabled} />
                   <ResetApprovals agentId={agent.id} disabled={actionsDisabled} />
+                  {canDelete && (
+                    <OGDialog>
+                      <OGDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          aria-label={localize('com_ui_delete_agent')}
+                          title={localize('com_ui_delete_agent')}
+                          className="px-3"
+                        >
+                          <Trash2
+                            className="text-text-destructive size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                        </Button>
+                      </OGDialogTrigger>
+                      <OGDialogTemplate
+                        title={localize('com_ui_delete_agent')}
+                        className="max-w-[28.125rem]"
+                        main={
+                          <div className="grid w-full items-center gap-2">
+                            <p className="text-start text-sm font-medium">
+                              {localize('com_ui_delete_agent_confirm_named', { name: agent.name })}
+                            </p>
+                            <p className="text-text-secondary text-xs">
+                              {localize('com_ui_delete_agent_warning')}
+                            </p>
+                          </div>
+                        }
+                        selection={{
+                          selectHandler: () => deleteAgent.mutate({ agent_id: agent.id }),
+                          selectClasses:
+                            'bg-surface-destructive hover:bg-surface-destructive-hover text-text-on-status',
+                          selectText: localize('com_ui_delete'),
+                        }}
+                      />
+                    </OGDialog>
+                  )}
                 </div>
                 <Button
                   className="w-full sm:w-auto"

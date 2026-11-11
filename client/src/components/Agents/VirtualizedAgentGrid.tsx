@@ -592,6 +592,7 @@ export default function VirtualizedAgentGrid({
           descriptionSource={findDescription}
           actionsUnavailable={selectedAgentUnavailable}
           actionsDisabled={selectedAgentChecking}
+          onDeleted={() => setSelection(null)}
         />
       )}
     </OGDialog>
