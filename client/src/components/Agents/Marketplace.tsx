@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
+import { Button } from '@librechat/client';
 import type t from 'librechat-data-provider';
 import { useGetEndpointsQuery, useGetAgentCategoriesQuery } from '~/data-provider';
 import SortDropdown, { SORT_OPTIONS, DEFAULT_SORT_OPTION } from './SortDropdown';
@@ -144,6 +146,15 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
             <div className="flex items-center gap-2 p-3">
               {isSmallScreen && <OpenSidebar className="size-9 shrink-0 rounded-lg" />}
               <SearchBar value={searchQuery} onSearch={handleSearch} className="min-w-0 flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => navigate('/agents/builder')}
+              >
+                <Sparkles className="me-1.5 h-4 w-4" aria-hidden="true" />
+                {localize('com_agents_open_builder')}
+              </Button>
               <MarketplaceAdminSettings />
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-3">

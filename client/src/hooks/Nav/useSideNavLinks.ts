@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { OpenAIMinimalIcon } from '@librechat/client';
 import {
-  Bot,
   Brain,
   Bookmark,
   NotebookPen,
@@ -27,7 +26,6 @@ import {
   useGetAgentsConfig,
   useHasAccess,
 } from '~/hooks';
-import AgentPanelSwitch from '~/components/SidePanel/Agents/AgentPanelSwitch';
 import BookmarkPanel from '~/components/SidePanel/Bookmarks/BookmarkPanel';
 import PanelSwitch from '~/components/SidePanel/Builder/PanelSwitch';
 import { SchedulePanel } from '~/components/SidePanel/Schedules';
@@ -73,14 +71,6 @@ export default function useSideNavLinks({
   const hasAccessToReadMemories = useHasAccess({
     permissionType: PermissionTypes.MEMORIES,
     permission: Permissions.READ,
-  });
-  const hasAccessToAgents = useHasAccess({
-    permissionType: PermissionTypes.AGENTS,
-    permission: Permissions.USE,
-  });
-  const hasAccessToCreateAgents = useHasAccess({
-    permissionType: PermissionTypes.AGENTS,
-    permission: Permissions.CREATE,
   });
   const hasAccessToUseMCPSettings = useHasAccess({
     permissionType: PermissionTypes.MCP_SERVERS,
@@ -142,21 +132,6 @@ export default function useSideNavLinks({
       id: 'knowledge',
       Component: KnowledgePanel,
     });
-
-    if (
-      endpointsConfig?.[EModelEndpoint.agents] &&
-      hasAccessToAgents &&
-      hasAccessToCreateAgents &&
-      endpointsConfig[EModelEndpoint.agents].disableBuilder !== true
-    ) {
-      links.push({
-        title: 'com_sidepanel_agent_builder',
-        label: '',
-        icon: Bot,
-        id: EModelEndpoint.agents,
-        Component: AgentPanelSwitch,
-      });
-    }
 
     if (
       isAssistantsEndpoint(endpoint) &&
@@ -237,8 +212,6 @@ export default function useSideNavLinks({
     endpoint,
     endpointsConfig,
     keyProvided,
-    hasAccessToAgents,
-    hasAccessToCreateAgents,
     hasAccessToPrompts,
     hasAccessToMemories,
     hasAccessToReadMemories,

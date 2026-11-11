@@ -61,6 +61,11 @@ const loadSuperAgentView = () =>
     Component: m.default,
   }));
 
+const loadAgentBuilder = () =>
+  importWithRecovery(() => import('~/components/Agents/Builder')).then((m) => ({
+    Component: m.default,
+  }));
+
 const baseEl = document.querySelector('base');
 const baseHref = baseEl?.getAttribute('href') || '/';
 
@@ -200,6 +205,10 @@ export const router = createBrowserRouter(
                 {
                   path: 'agents',
                   element: <MarketplaceRoute />,
+                },
+                {
+                  path: 'agents/builder',
+                  lazy: loadAgentBuilder,
                 },
                 {
                   path: 'agents/:category',
