@@ -15,8 +15,6 @@
  */
 
 import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import type { MCPOptions } from 'librechat-data-provider';
 
@@ -213,56 +211,6 @@ function isPlainName(name: string): boolean {
     !name.includes('\\') &&
     !/[\u0000-\u001f<>:"|?*]/.test(name)
   );
-}
-
-/** Well-known folders offered as one-click jumps, in menu order. */
-const SHORTCUT_NAMES = ['Desktop', 'Documents', 'Downloads', 'Pictures'] as const;
-
-/** Human-facing label per shortcut folder; the picker localizes what it shows. */
-const SHORTCUT_LABELS: Record<(typeof SHORTCUT_NAMES)[number], string> = {
-  Desktop: 'desktop',
-  Documents: 'documents',
-  Downloads: 'downloads',
-  Pictures: 'pictures',
-};
-
-export interface WorkspaceShortcut {
-  /** Stable identifier the client localizes. */
-  id: string;
-  path: string;
-}
-
-/**
- * One-click folders inside the current account's home directory.
- *
- * The picker opens on a drive root, where finding `Documents` means descending
- * through `Users/<name>`; these are the places a workspace usually lives, and
- * they only appear when they actually exist inside a configured root.
- */
-export function workspaceShortcuts(roots: readonly string[]): WorkspaceShortcut[] {
-  let home: string;
-  try {
-    home = os.homedir();
-  } catch {
-    return [];
-  }
-  if (!isWithinRoots(home, roots)) {
-    return [];
-  }
-
-  const shortcuts: WorkspaceShortcut[] = [];
-  for (const name of SHORTCUT_NAMES) {
-    const candidate = path.join(home, name);
-    try {
-      if (!fsSync.statSync(candidate).isDirectory()) {
-        continue;
-      }
-    } catch {
-      continue;
-    }
-    shortcuts.push({ id: SHORTCUT_LABELS[name], path: candidate });
-  }
-  return shortcuts;
 }
 
 /**

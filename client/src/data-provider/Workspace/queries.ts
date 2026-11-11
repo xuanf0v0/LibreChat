@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { QueryKeys, dataService } from 'librechat-data-provider';
-import type { WorkspaceListing, WorkspaceShortcut } from 'librechat-data-provider';
+import type { WorkspaceListing } from 'librechat-data-provider';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 /** The roots the picker may browse. A deployment with no filesystem MCP server
  *  answers with an empty list rather than an error, so the picker can say so. */
 export const useWorkspaceRootsQuery = (
-  config?: UseQueryOptions<{ roots: string[]; shortcuts?: WorkspaceShortcut[] }, unknown>,
+  config?: UseQueryOptions<{ roots: string[] }, unknown>,
 ) => {
-  return useQuery<{ roots: string[]; shortcuts?: WorkspaceShortcut[] }, unknown>(
+  return useQuery<{ roots: string[] }, unknown>(
     [QueryKeys.workspace, 'roots'],
     () => dataService.getWorkspaceRoots(),
     {
