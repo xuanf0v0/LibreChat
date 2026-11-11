@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useGetModelsQuery } from 'librechat-data-provider/react-query';
-import { ArrowLeft, Sparkles } from 'lucide-react';
 import {
   Button,
   Dropdown,
@@ -24,10 +24,10 @@ import {
   useGenerateAgentMutation,
   useGetEndpointsQuery,
 } from '~/data-provider';
-import { AgentPanelProvider } from '~/Providers/AgentPanelContext';
+import AgentCategorySelector from '~/components/SidePanel/Agents/AgentCategorySelector';
 import { useDocumentTitle, useGetAgentsConfig, useLocalize } from '~/hooks';
 import { createProviderOption, getDefaultAgentFormValues } from '~/utils';
-import AgentCategorySelector from '~/components/SidePanel/Agents/AgentCategorySelector';
+import { AgentPanelProvider } from '~/Providers/AgentPanelContext';
 import OpenSidebar from '~/components/Chat/Menus/OpenSidebar';
 import useDrawerViewport from '~/hooks/Nav/useDrawerViewport';
 import { DEFAULT_APP_TITLE } from '~/utils';
@@ -64,7 +64,7 @@ function AgentBuilder() {
     defaultValues: getDefaultAgentFormValues(),
     mode: 'onChange',
   });
-  const { control, getValues, reset, watch, register, setValue } = methods;
+  const { getValues, reset, watch, register, setValue } = methods;
   const provider = watch('provider');
   const model = watch('model');
 
@@ -110,18 +110,11 @@ function AgentBuilder() {
   /** The form stores `provider` as an option object, and the empty default is
    *  `{}` rather than `''` — reading `.value` off it yields `undefined`, which
    *  `String()` would render into the trigger as the literal text "undefined". */
-  const providerName =
-    provider == null
-      ? ''
-      : typeof provider === 'string'
-        ? provider
-        : String(provider.value ?? '');
-  const modelName =
-    typeof model === 'string'
-      ? model
-      : model != null && typeof model === 'object' && 'value' in model
-        ? String(model.value ?? '')
-        : '';
+  let providerName = '';
+  if (provider != null) {
+    providerName = typeof provider === 'string' ? provider : String(provider.value ?? '');
+  }
+  const modelName = String(model ?? '');
   const canGenerate = prompt.trim() !== '' && providerName !== '' && modelName !== '';
 
   const handleGenerate = useCallback(() => {
@@ -215,7 +208,7 @@ function AgentBuilder() {
   const header = useMemo(
     () => (
       <header className="border-border-light flex shrink-0 items-center gap-3 border-b px-6 py-4">
-        {isSmallScreen && <OpenSidebar className="size-9 shrink-0 rounded-lg" />}
+        {isSmallScreen && <OpenSidebar className="size-9 shrink-0" />}
         <Button
           variant="ghost"
           size="icon-sm"
@@ -253,7 +246,7 @@ function AgentBuilder() {
                 value={prompt}
                 maxLength={MAX_PROMPT_LENGTH}
                 placeholder={localize('com_ui_ai_agent_prompt_placeholder')}
-                className="min-h-48 text-base"
+                className="min-h-48"
                 onChange={(event) => setPrompt(event.target.value)}
               />
               <div className="mt-auto flex flex-col gap-2">
@@ -341,7 +334,7 @@ function AgentBuilder() {
                     <Label htmlFor="builder-instructions">{localize('com_ui_instructions')}</Label>
                     <Textarea
                       id="builder-instructions"
-                      className="min-h-40 font-mono text-xs"
+                      className="min-h-40"
                       {...register('instructions')}
                     />
                   </div>

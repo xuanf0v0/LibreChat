@@ -192,7 +192,17 @@ export default defineConfig(({ command }) => ({
     }),
     ...(buildSourceMap ? [sourcemapExclude({ excludeNodeModules: true })] : []),
     compression({
-      threshold: 10240,
+      /**
+       * Every asset the service worker precaches must ship precompressed.
+       *
+       * Workbox stores what `fetch()` hands it — already decoded — but keeps the
+       * response's `Content-Encoding` header. On replay the browser decodes again and
+       * fails with `ERR_CONTENT_DECODING_FAILED`. Anything below the threshold escapes
+       * the precompressed set and is compressed on the fly by `compression()`, which is
+       * exactly the shape that breaks. 512 bytes keeps the whole precache covered; the
+       * cost is a compressed copy of a handful of tiny chunks.
+       */
+      threshold: 512,
       /**
        * Brotli's default quality of 11 costs ~13s of single-threaded CPU on this bundle
        * against ~0.5s for gzip, and the plugin's scheduler serializes quality >= 10 as a

@@ -1,4 +1,8 @@
-import { buildAgentGenerateTools, createAgentGenerateHandler, parseGeneratedDraft } from './generate';
+import {
+  buildAgentGenerateTools,
+  createAgentGenerateHandler,
+  parseGeneratedDraft,
+} from './generate';
 
 describe('buildAgentGenerateTools', () => {
   it('lists builtin and MCP tools by attachable id, skipping consume-only servers', () => {
@@ -124,9 +128,11 @@ describe('createAgentGenerateHandler', () => {
         tools: ['read_file_mcp_filesystem', 'invented_tool'],
       }),
     );
-    const listTools = jest.fn().mockResolvedValue([
-      { id: 'read_file_mcp_filesystem', name: 'read_file', description: 'Read a file' },
-    ]);
+    const listTools = jest
+      .fn()
+      .mockResolvedValue([
+        { id: 'read_file_mcp_filesystem', name: 'read_file', description: 'Read a file' },
+      ]);
     const handler = createAgentGenerateHandler({
       resolveProvider: jest.fn().mockResolvedValue(provider),
       listTools,

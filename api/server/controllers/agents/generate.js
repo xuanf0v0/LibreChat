@@ -22,9 +22,7 @@ const readModels = (value) => {
  *  outside the request layer this feature is allowed to read. */
 const resolveProvider = async ({ userId, role, tenantId, provider }) => {
   const appConfig = await getAppConfig({ userId, role, tenantId });
-  const entries = Array.isArray(appConfig?.endpoints?.custom)
-    ? appConfig.endpoints.custom
-    : [];
+  const entries = Array.isArray(appConfig?.endpoints?.custom) ? appConfig.endpoints.custom : [];
   const normalized = provider.trim().toLowerCase();
   const entry = entries.find(
     (candidate) =>

@@ -393,16 +393,27 @@ const startServer = async () => {
   app.use(cors());
   app.use(cookieParser());
 
+  app.get('/index.html', sendIndexHtml);
+  app.use(staticCache(appConfig.paths.dist));
+  app.use(staticCache(appConfig.paths.fonts));
+  app.use(staticCache(appConfig.paths.assets));
+
+  /**
+   * After the static assets, not before them.
+   *
+   * `express-static-gzip` serves a precompressed file when one exists and lets the
+   * next middleware compress on the fly when it does not. Compressing a static
+   * response here too means the service worker precaches a body that `fetch()`
+   * already decoded while keeping its `Content-Encoding` header, and the browser
+   * decodes it a second time on replay — `ERR_CONTENT_DECODING_FAILED`. Static
+   * assets therefore leave this chain untouched, and only the dynamic responses
+   * (API, the per-request index.html) are compressed at runtime.
+   */
   if (!isEnabled(DISABLE_COMPRESSION)) {
     app.use(compression());
   } else {
     console.warn('Response compression has been disabled via DISABLE_COMPRESSION.');
   }
-
-  app.get('/index.html', sendIndexHtml);
-  app.use(staticCache(appConfig.paths.dist));
-  app.use(staticCache(appConfig.paths.fonts));
-  app.use(staticCache(appConfig.paths.assets));
 
   if (telemetry.enabled) {
     app.use(telemetry.telemetryMiddleware);
