@@ -174,3 +174,30 @@ describe('createWorkspaceDirectory', () => {
     });
   });
 });
+
+/**
+ * A drive root already ends in a separator. Appending another one produced
+ * `C:\\` and rejected every path beneath it, which left a picker opened on a
+ * drive unable to descend.
+ */
+describe('isWithinRoots with a drive root', () => {
+  const driveRoot = path.parse(process.cwd()).root;
+  const nested = path.join(driveRoot, 'Users', 'someone', 'documents');
+
+  it('admits a directory beneath a drive root', () => {
+    expect(isWithinRoots(nested, [driveRoot])).toBe(true);
+  });
+
+  it('admits the drive root itself', () => {
+    expect(isWithinRoots(driveRoot, [driveRoot])).toBe(true);
+  });
+
+  it('still refuses a different drive', () => {
+    const otherDrive = process.platform === 'win32' ? 'Z:\\' : '/proc';
+    expect(isWithinRoots(path.join(otherDrive, 'x'), [driveRoot])).toBe(false);
+  });
+
+  it('still refuses a sibling that shares a name prefix', () => {
+    expect(isWithinRoots('/data/workspace-evil', ['/data/workspace'])).toBe(false);
+  });
+});

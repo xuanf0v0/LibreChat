@@ -8,6 +8,7 @@ import {
   useWorkspaceRootsQuery,
 } from '~/data-provider';
 import { workspaceFileAtom, workspacePathAtom } from '~/store/workspace';
+import type { TranslationKeys } from '~/hooks';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
 
@@ -36,10 +37,12 @@ export default function WorkspacePickerDialog({
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [pathInput, setPathInput] = useState('');
   const createFolder = useCreateWorkspaceFolderMutation();
 
   const { data: rootsData, isLoading: rootsLoading } = useWorkspaceRootsQuery({ enabled: open });
   const roots = rootsData?.roots ?? [];
+  const shortcuts = rootsData?.shortcuts ?? [];
   const { data: listing, isLoading: entriesLoading, error } = useWorkspaceEntriesQuery(
     currentPath,
     { enabled: open && roots.length > 0 },
@@ -52,6 +55,22 @@ export default function WorkspacePickerDialog({
       setCurrentPath(listing.path);
     }
   }, [open, currentPath, listing?.path]);
+
+  /** The path box tracks wherever the listing settled, including a failed
+   *  navigation falling back to the directory that was already open. */
+  useEffect(() => {
+    if (listing?.path != null) {
+      setPathInput(listing.path);
+    }
+  }, [listing?.path]);
+
+  useEffect(() => {
+    if (!open) {
+      setPathInput('');
+      setCreating(false);
+      setNewFolderName('');
+    }
+  }, [open]);
 
   const captureReturnFocus = useCallback(() => {
     const activeElement = document.activeElement;
@@ -129,6 +148,24 @@ export default function WorkspacePickerDialog({
 
     return (
       <>
+        {shortcuts.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {shortcuts.map((shortcut) => (
+              <Button
+                key={shortcut.id}
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setCurrentPath(shortcut.path)}
+              >
+                {localize(
+                  `com_ui_workspace_shortcut_${shortcut.id}` as TranslationKeys,
+                )}
+              </Button>
+            ))}
+          </div>
+        )}
+
         <div className="border-border-light mb-2 flex items-center gap-1 border-b pb-2">
           <Button
             variant="ghost"
@@ -140,9 +177,24 @@ export default function WorkspacePickerDialog({
           >
             <CornerLeftUp className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <span className="text-text-secondary min-w-0 truncate font-mono text-xs">
-            {listing?.path ?? ''}
-          </span>
+          <form
+            className="min-w-0 flex-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const typed = pathInput.trim();
+              if (typed !== '') {
+                setCurrentPath(typed);
+              }
+            }}
+          >
+            <input
+              aria-label={localize('com_ui_workspace_path')}
+              value={pathInput}
+              onChange={(event) => setPathInput(event.target.value)}
+              spellCheck={false}
+              className="focus-visible:ring-focus-control text-text-secondary w-full min-w-0 rounded-md bg-transparent px-1 py-0.5 font-mono text-xs outline-hidden focus-visible:ring-2"
+            />
+          </form>
         </div>
 
         <div className="max-h-[45vh] min-h-[180px] overflow-y-auto">
@@ -306,6 +358,8 @@ export default function WorkspacePickerDialog({
     localize,
     newFolderName,
     notConfigured,
+    pathInput,
+    shortcuts,
     rootsLoading,
     submitNewFolder,
   ]);

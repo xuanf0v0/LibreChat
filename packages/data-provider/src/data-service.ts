@@ -1546,8 +1546,17 @@ export function getSkill(id: string): Promise<sk.TSkill> {
   return request.get(endpoints.getSkill(id));
 }
 
+/** A one-click well-known folder (`desktop`, `documents`, …) inside a root. */
+export interface WorkspaceShortcut {
+  id: string;
+  path: string;
+}
+
 /** Roots the workspace picker may browse; empty when no filesystem MCP server is configured. */
-export function getWorkspaceRoots(): Promise<{ roots: string[] }> {
+export function getWorkspaceRoots(): Promise<{
+  roots: string[];
+  shortcuts?: WorkspaceShortcut[];
+}> {
   return request.get(endpoints.workspace());
 }
 

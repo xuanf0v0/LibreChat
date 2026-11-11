@@ -3,6 +3,7 @@ const {
   createWorkspaceDirectory,
   listWorkspaceDirectory,
   resolveWorkspaceRoots,
+  workspaceShortcuts,
 } = require('@librechat/api');
 const { loadCustomConfig } = require('~/server/services/Config');
 const { requireJwtAuth, requireSameOrigin } = require('~/server/middleware');
@@ -27,7 +28,7 @@ async function rootsForRequest() {
  */
 router.get('/', requireJwtAuth, async (_req, res) => {
   const roots = await rootsForRequest();
-  res.json({ roots });
+  res.json({ roots, shortcuts: workspaceShortcuts(roots) });
 });
 
 /**
