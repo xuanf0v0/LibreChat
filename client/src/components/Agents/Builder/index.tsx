@@ -57,6 +57,7 @@ function AgentBuilder() {
     instructions: string;
     category: string;
     conversation_starters: string[];
+    tools: string[];
   } | null>(null);
 
   const methods = useForm<AgentForm>({
@@ -106,9 +107,21 @@ function AgentBuilder() {
     [allowedProviders, endpointsConfig],
   );
 
+  /** The form stores `provider` as an option object, and the empty default is
+   *  `{}` rather than `''` — reading `.value` off it yields `undefined`, which
+   *  `String()` would render into the trigger as the literal text "undefined". */
   const providerName =
-    provider == null ? '' : String(typeof provider === 'string' ? provider : provider.value);
-  const modelName = model == null ? '' : String(model);
+    provider == null
+      ? ''
+      : typeof provider === 'string'
+        ? provider
+        : String(provider.value ?? '');
+  const modelName =
+    typeof model === 'string'
+      ? model
+      : model != null && typeof model === 'object' && 'value' in model
+        ? String(model.value ?? '')
+        : '';
   const canGenerate = prompt.trim() !== '' && providerName !== '' && modelName !== '';
 
   const handleGenerate = useCallback(() => {
@@ -130,6 +143,7 @@ function AgentBuilder() {
             instructions: result.draft.instructions,
             category: result.draft.category ?? '',
             conversation_starters: result.draft.conversation_starters ?? [],
+            tools: result.draft.tools ?? [],
           };
           setDraft(next);
           const current = getValues();
@@ -141,6 +155,7 @@ function AgentBuilder() {
             instructionsSource: 'inline',
             instructionsPrompt: null,
             conversation_starters: next.conversation_starters,
+            tools: next.tools,
             ...(next.category !== '' ? { category: next.category } : {}),
           });
           showToast({ message: localize('com_ui_ai_agent_generated'), status: 'success' });
@@ -191,7 +206,7 @@ function AgentBuilder() {
       provider: providerName,
       model: modelName,
       model_parameters: values.model_parameters ?? {},
-      tools: [],
+      tools: values.tools ?? [],
     });
   }, [create, getValues, localize, modelName, providerName, showToast]);
 
@@ -199,7 +214,7 @@ function AgentBuilder() {
 
   const header = useMemo(
     () => (
-      <header className="border-border-light flex shrink-0 items-center gap-3 border-b px-4 py-3">
+      <header className="border-border-light flex shrink-0 items-center gap-3 border-b px-6 py-4">
         {isSmallScreen && <OpenSidebar className="size-9 shrink-0 rounded-lg" />}
         <Button
           variant="ghost"
@@ -209,31 +224,28 @@ function AgentBuilder() {
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
-        <h1 className="text-text-primary min-w-0 flex-1 truncate text-base font-semibold">
+        <h1 className="text-text-primary min-w-0 flex-1 truncate text-lg font-semibold">
           {localize('com_agents_builder_title')}
         </h1>
-        <Button variant="submit" size="sm" disabled={createDisabled} onClick={handleCreate}>
-          {create.isLoading ? <Spinner className="size-4" /> : localize('com_ui_create')}
-        </Button>
       </header>
     ),
-    [create.isLoading, createDisabled, handleCreate, isSmallScreen, localize, navigate],
+    [isSmallScreen, localize, navigate],
   );
 
   return (
     <FormProvider {...methods}>
       <div className="bg-surface-primary-alt text-text-primary flex h-full w-full min-w-0 flex-col">
         {header}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-4 lg:grid-cols-2">
-            <section className="border-border-light bg-surface-secondary flex flex-col gap-3 rounded-xl border p-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-text-secondary h-4 w-4 shrink-0" aria-hidden="true" />
-                <h2 className="text-text-primary text-sm font-medium">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 lg:p-10">
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 lg:grid-cols-2">
+            <section className="border-border-light bg-surface-secondary flex flex-col gap-5 rounded-2xl border p-6 lg:p-8">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="text-text-secondary h-5 w-5 shrink-0" aria-hidden="true" />
+                <h2 className="text-text-primary text-base font-semibold">
                   {localize('com_ui_ai_agent_title')}
                 </h2>
               </div>
-              <p className="text-text-secondary text-xs">
+              <p className="text-text-secondary text-sm leading-relaxed">
                 {localize('com_ui_ai_agent_description')}
               </p>
               <Textarea
@@ -241,7 +253,7 @@ function AgentBuilder() {
                 value={prompt}
                 maxLength={MAX_PROMPT_LENGTH}
                 placeholder={localize('com_ui_ai_agent_prompt_placeholder')}
-                className="min-h-32"
+                className="min-h-48 text-base"
                 onChange={(event) => setPrompt(event.target.value)}
               />
               <div className="mt-auto flex flex-col gap-2">
@@ -257,7 +269,7 @@ function AgentBuilder() {
                         value: option.value,
                       }))}
                       onChange={(value) => {
-                        setValue('provider', createProviderOption(value));
+                        setValue('provider', createProviderOption(String(value)));
                         setValue('model', '');
                       }}
                       disabled={!modelsReady}
@@ -272,7 +284,7 @@ function AgentBuilder() {
                       options={(models[resolveModelCatalogKey(providerName, models)] ?? []).map(
                         (name) => ({ label: name, value: name }),
                       )}
-                      onChange={(value) => setValue('model', value)}
+                      onChange={(value) => setValue('model', String(value))}
                       disabled={!modelsReady || providerName === ''}
                     />
                   </div>
@@ -299,12 +311,12 @@ function AgentBuilder() {
               </div>
             </section>
 
-            <section className="border-border-light bg-surface-secondary flex flex-col gap-3 rounded-xl border p-4">
-              <h2 className="text-text-primary text-sm font-medium">
+            <section className="border-border-light bg-surface-secondary flex flex-col gap-5 rounded-2xl border p-6 lg:p-8">
+              <h2 className="text-text-primary text-base font-semibold">
                 {localize('com_agents_builder_draft')}
               </h2>
               {draft == null ? (
-                <p className="text-text-secondary py-8 text-center text-sm">
+                <p className="text-text-secondary flex flex-1 items-center justify-center py-16 text-center text-sm">
                   {localize('com_agents_builder_empty')}
                 </p>
               ) : (
@@ -332,6 +344,39 @@ function AgentBuilder() {
                       className="min-h-40 font-mono text-xs"
                       {...register('instructions')}
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{localize('com_ui_ai_agent_tools')}</Label>
+                    {draft.tools.length === 0 ? (
+                      <p className="text-text-secondary text-xs">
+                        {localize('com_ui_ai_agent_tools_none')}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {draft.tools.map((toolId) => (
+                          <span
+                            key={toolId}
+                            className="border-border-light bg-surface-primary text-text-secondary rounded-md border px-2 py-1 font-mono text-xs"
+                          >
+                            {toolId}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-auto flex justify-end pt-2">
+                    <Button
+                      variant="submit"
+                      disabled={createDisabled}
+                      onClick={handleCreate}
+                      className="min-w-32"
+                    >
+                      {create.isLoading ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        localize('com_ui_create')
+                      )}
+                    </Button>
                   </div>
                 </>
               )}

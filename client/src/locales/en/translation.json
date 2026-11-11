@@ -1185,6 +1185,8 @@
   "com_ui_ai_agent_prompt_placeholder": "For example: a Chinese financial analyst that explains earnings reports and compares key metrics.",
   "com_ui_ai_agent_rate_limited": "Too many draft requests. Wait a minute and try again.",
   "com_ui_ai_agent_title": "Create with AI",
+  "com_ui_ai_agent_tools": "Selected tools",
+  "com_ui_ai_agent_tools_none": "No tools selected for this request.",
   "com_ui_all": "all",
   "com_ui_all_projects": "All projects",
   "com_ui_all_proper": "All",

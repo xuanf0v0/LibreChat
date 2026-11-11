@@ -1014,6 +1014,8 @@
   "com_ui_ai_agent_prompt_placeholder": "例如：一个中文财报分析助手，能解读财报并对比关键指标。",
   "com_ui_ai_agent_rate_limited": "生成请求过于频繁，请稍后再试。",
   "com_ui_ai_agent_title": "AI 创建",
+  "com_ui_ai_agent_tools": "已选工具",
+  "com_ui_ai_agent_tools_none": "本次需求无需工具。",
   "com_ui_all": "所有",
   "com_ui_all_projects": "全部项目",
   "com_ui_all_proper": "所有",

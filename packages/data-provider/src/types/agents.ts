@@ -1197,6 +1197,8 @@ export type AgentGenerateDraft = {
   instructions: string;
   category: string;
   conversation_starters: string[];
+  /** Tool ids from the deployment's catalog that the agent needs; never invented. */
+  tools: string[];
 };
 
 export type AgentGenerateParams = {

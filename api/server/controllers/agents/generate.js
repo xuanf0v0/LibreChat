@@ -1,5 +1,12 @@
-const { createAgentGenerateHandler, resolveConfigSecret } = require('@librechat/api');
-const { getAppConfig } = require('~/server/services/Config');
+const {
+  buildAgentGenerateTools,
+  createAgentGenerateHandler,
+  listAvailableTools,
+  resolveConfigSecret,
+} = require('@librechat/api');
+const { resolveAllMcpConfigs } = require('~/server/services/MCP');
+const { getAppConfig, getCachedTools } = require('~/server/services/Config');
+const { availableTools, toolkits } = require('~/app/clients/tools');
 
 const readModels = (value) => {
   if (Array.isArray(value)) {
@@ -36,4 +43,23 @@ const resolveProvider = async ({ userId, role, tenantId, provider }) => {
   };
 };
 
-module.exports = createAgentGenerateHandler({ resolveProvider });
+/** The builtin tools the agent panel lists plus every MCP tool of a reachable server. */
+const listTools = async ({ userId, role, tenantId, idOnTheSource }) => {
+  const [appConfig, toolDefinitions, mcpServers] = await Promise.all([
+    getAppConfig({ userId, role, tenantId }),
+    getCachedTools(),
+    resolveAllMcpConfigs(userId, { role, idOnTheSource }),
+  ]);
+
+  return buildAgentGenerateTools({
+    builtin: listAvailableTools({
+      manifest: availableTools,
+      toolkits,
+      toolDefinitions,
+      githubCompare: appConfig?.githubCompare,
+    }),
+    mcpServers,
+  });
+};
+
+module.exports = createAgentGenerateHandler({ resolveProvider, listTools });

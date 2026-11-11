@@ -1,4 +1,10 @@
-import type { AgentGenerateDraft, AgentGenerateParams } from 'librechat-data-provider';
+import type {
+  AgentGenerateDraft,
+  AgentGenerateParams,
+  TPlugin,
+} from 'librechat-data-provider';
+import type { ParsedServerConfig } from '~/mcp/types';
+import { Constants, normalizeServerName, splitMCPToolKey } from 'librechat-data-provider';
 import type { Request, Response } from 'express';
 import axios from 'axios';
 import { z } from 'zod';
@@ -13,6 +19,11 @@ const MAX_INSTRUCTIONS_LENGTH = 12000;
 const MAX_CATEGORY_LENGTH = 50;
 const MAX_STARTER_LENGTH = 120;
 const MAX_STARTERS = 4;
+const MAX_TOOLS = 24;
+const MAX_TOOL_ID_LENGTH = 120;
+const MAX_TOOL_DESCRIPTION_LENGTH = 140;
+/** Bounds the prompt on deployments with hundreds of MCP tools; order is deterministic. */
+const MAX_CATALOG_TOOLS = 80;
 const GENERATION_TIMEOUT_MS = 60_000;
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
@@ -33,6 +44,61 @@ export type AgentGenerateCompletionInput = {
   signal: AbortSignal;
 };
 
+/** One tool the generator may attach, as the agent editor persists it. */
+export type AgentGenerateTool = {
+  id: string;
+  name: string;
+  description: string;
+};
+
+/**
+ * The tools a user may attach: the deployment's builtin tools plus the MCP tools
+ * of every server the user can reach. Server tokens are not offered — only
+ * concrete tool ids, so the draft is attachable as-is.
+ */
+export function buildAgentGenerateTools({
+  builtin,
+  mcpServers,
+}: {
+  builtin: readonly Pick<TPlugin, 'pluginKey' | 'name' | 'description'>[];
+  mcpServers: Record<string, Pick<ParsedServerConfig, 'consumeOnly' | 'toolFunctions'>>;
+}): AgentGenerateTool[] {
+  const tools = new Map<string, AgentGenerateTool>();
+  const add = (tool: AgentGenerateTool) => {
+    if (tool.id !== '' && !tools.has(tool.id)) {
+      tools.set(tool.id, tool);
+    }
+  };
+
+  for (const plugin of builtin) {
+    add({
+      id: plugin.pluginKey,
+      name: plugin.name || plugin.pluginKey,
+      description: plugin.description ?? '',
+    });
+  }
+
+  for (const [serverName, config] of Object.entries(mcpServers)) {
+    /** A consume-only server is reachable through its owning agent, not attachable here. */
+    if (config.consumeOnly === true) {
+      continue;
+    }
+    for (const [toolId, tool] of Object.entries(config.toolFunctions ?? {})) {
+      if (!toolId.includes(Constants.mcp_delimiter)) {
+        continue;
+      }
+      const [toolName] = splitMCPToolKey(toolId, [serverName, normalizeServerName(serverName)]);
+      add({
+        id: toolId,
+        name: tool.function.name || toolName,
+        description: tool.function.description ?? '',
+      });
+    }
+  }
+
+  return [...tools.values()];
+}
+
 export interface AgentGenerateDeps {
   /** Resolves an authenticated user's configured provider and decrypted key. */
   resolveProvider: (params: {
@@ -41,6 +107,13 @@ export interface AgentGenerateDeps {
     tenantId?: string;
     provider: string;
   }) => Promise<AgentGenerateProvider | null>;
+  /** The tools the requester may attach; the draft may only pick ids from this list. */
+  listTools: (params: {
+    userId: string;
+    role?: string;
+    tenantId?: string;
+    idOnTheSource?: string;
+  }) => Promise<AgentGenerateTool[]>;
   /** Injectable for tests; defaults to the OpenAI-compatible/Anthropic HTTP call. */
   requestCompletion?: (input: AgentGenerateCompletionInput) => Promise<string>;
 }
@@ -49,6 +122,7 @@ type GenerateRequestUser = {
   id?: string;
   role?: string;
   tenantId?: string;
+  idOnTheSource?: string;
 };
 
 type GenerateRequestBody = Partial<AgentGenerateParams> & { draft?: unknown };
@@ -69,6 +143,7 @@ const draftSchema = z.object({
   instructions: z.string(),
   category: z.string().optional().default(''),
   conversation_starters: z.array(z.string()).optional().default([]),
+  tools: z.array(z.string()).optional().default([]),
 });
 
 const SYSTEM_PROMPT = `You design agent configurations for LibreChat.
@@ -79,8 +154,9 @@ The object must have these keys:
 - "instructions": a complete system prompt for the agent
 - "category": a short lowercase identifier for the agent's category, or ""
 - "conversation_starters": 0-4 short example user messages
+- "tools": the ids of the tools the agent needs to do this job, chosen only from the "Available tools" catalog in the user message; [] when none is needed
 Write all copy in the language of the user's request.
-Do not invent tools, skills, file ids, secrets, URLs, or capabilities. The user will configure tools separately.`;
+Choose the fewest tools that cover the request. Never invent tool ids, skills, file ids, secrets, URLs, or capabilities, and do not mention a tool in "instructions" unless you selected it.`;
 
 const sanitizeText = (value: string, maxLength: number): string =>
   Array.from(value)
@@ -108,7 +184,10 @@ function parseJson(text: string): unknown {
 }
 
 /** Extracts and bounds a model response before it can reach the builder form. */
-export function parseGeneratedDraft(text: string): AgentGenerateDraft {
+export function parseGeneratedDraft(
+  text: string,
+  allowedTools?: readonly string[],
+): AgentGenerateDraft {
   const parsed = draftSchema.safeParse(parseJson(text));
   if (!parsed.success) {
     throw new GenerationError('invalid_generation', 502);
@@ -130,6 +209,13 @@ export function parseGeneratedDraft(text: string): AgentGenerateDraft {
         .filter((starter) => starter !== ''),
     ),
   ).slice(0, MAX_STARTERS);
+  const tools = Array.from(
+    new Set(
+      parsed.data.tools
+        .map((tool) => sanitizeText(tool, MAX_TOOL_ID_LENGTH))
+        .filter((tool) => tool !== '' && (allowedTools == null || allowedTools.includes(tool))),
+    ),
+  ).slice(0, MAX_TOOLS);
 
   return {
     name,
@@ -137,6 +223,7 @@ export function parseGeneratedDraft(text: string): AgentGenerateDraft {
     instructions,
     category,
     conversation_starters,
+    tools,
   };
 }
 
@@ -170,16 +257,33 @@ function normalizeDraft(value: unknown): string {
           .slice(0, MAX_STARTERS)
           .map((starter) => starter.slice(0, MAX_STARTER_LENGTH))
       : [],
+    tools: Array.isArray(draft.tools)
+      ? draft.tools
+          .filter((tool): tool is string => typeof tool === 'string')
+          .slice(0, MAX_TOOLS)
+          .map((tool) => tool.slice(0, MAX_TOOL_ID_LENGTH))
+      : [],
   };
   const json = JSON.stringify(picked);
   return json.length > MAX_DRAFT_JSON_LENGTH ? json.slice(0, MAX_DRAFT_JSON_LENGTH) : json;
 }
 
-function buildUserPrompt(params: AgentGenerateParams): string {
+function buildUserPrompt(params: AgentGenerateParams, tools: readonly AgentGenerateTool[]): string {
   const draft = normalizeDraft(params.draft);
+  const catalog =
+    tools.length === 0
+      ? 'Available tools: none.'
+      : [
+          'Available tools (id — description):',
+          ...tools.slice(0, MAX_CATALOG_TOOLS).map((tool) => {
+            const description = tool.description.trim().slice(0, MAX_TOOL_DESCRIPTION_LENGTH);
+            return description === '' ? `- ${tool.id}` : `- ${tool.id} — ${description}`;
+          }),
+        ].join('\n');
   return [
     `User request:\n${params.prompt.trim()}`,
     draft === '' ? '' : `Current draft to improve:\n${draft}`,
+    catalog,
     'Return the JSON object now.',
   ]
     .filter((part) => part !== '')
@@ -367,22 +471,35 @@ export function createAgentGenerateHandler(deps: AgentGenerateDeps) {
         return sendError(res, new GenerationError('model_not_available', 400));
       }
 
+      const tools = await deps.listTools({
+        userId,
+        role: user?.role,
+        tenantId: user?.tenantId,
+        idOnTheSource: user?.idOnTheSource,
+      });
+
       const content = await completion({
         provider,
         model,
         system: SYSTEM_PROMPT,
-        user: buildUserPrompt({
-          prompt,
-          provider: provider.name,
-          model,
-          draft: body.draft as AgentGenerateParams['draft'],
-          locale: typeof body.locale === 'string' ? body.locale : undefined,
-        }),
+        user: buildUserPrompt(
+          {
+            prompt,
+            provider: provider.name,
+            model,
+            draft: body.draft as AgentGenerateParams['draft'],
+            locale: typeof body.locale === 'string' ? body.locale : undefined,
+          },
+          tools,
+        ),
         signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
       });
 
       return res.status(200).json({
-        draft: parseGeneratedDraft(content),
+        draft: parseGeneratedDraft(
+          content,
+          tools.map((tool) => tool.id),
+        ),
         provider: provider.name,
         model,
       });
