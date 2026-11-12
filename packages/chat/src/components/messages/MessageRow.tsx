@@ -105,7 +105,10 @@ export default function MessageRow({
   const widthClass = getMessageRowWidthClass({ fullWidth, hasParallelContent });
   const isSystem = systemLabel != null && systemLabel !== '';
   const isUserSide = isCreatedByUser && !isSystem;
-  const hasFiles = isUserSide && !isEditing && (message?.files?.length ?? 0) > 0;
+  /* Either side can carry files: the reader's uploads sit on their own turn,
+   * while a reply that produced a document attaches it to the reply. System
+   * rows are synthetic event markers, so they never grow an attachment strip. */
+  const hasFiles = !isSystem && !isEditing && (message?.files?.length ?? 0) > 0;
   const hasBody =
     !hasFiles ||
     Boolean(
@@ -182,7 +185,10 @@ export default function MessageRow({
           {hasFiles && message != null && (
             <div
               data-testid="message-attachments"
-              className="flex max-w-full flex-col items-end gap-3 pb-2"
+              className={cn(
+                'flex max-w-full flex-col gap-3 pb-2',
+                isUserSide ? 'items-end' : 'items-start',
+              )}
             >
               {renderFiles(message)}
             </div>

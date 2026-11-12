@@ -115,12 +115,22 @@ describe('MessageRow', () => {
 
   it.each([
     { isCreatedByUser: true, isEditing: true },
-    { isCreatedByUser: false },
     { isCreatedByUser: true, systemLabel: 'System' },
-  ])('does not add an attachment strip to editors, assistant or system rows: %j', (props) => {
+  ])('does not add an attachment strip to editors or system rows: %j', (props) => {
     renderRow({ ...props, message: attachedMessage() });
     expect(screen.queryByTestId('attached-file')).not.toBeInTheDocument();
     expect(screen.getByTestId('message-body')).toBeInTheDocument();
+  });
+
+  it('shows a document a reply produced on the reply itself, aligned start', () => {
+    renderRow({ isCreatedByUser: false, message: attachedMessage() });
+
+    const attachments = screen.getByTestId('message-attachments');
+    expect(attachments).toHaveClass('items-start');
+    expect(attachments).toContainElement(screen.getByTestId('attached-file'));
+    expect(screen.getByTestId('message-body')).toContainElement(
+      screen.getByText(MESSAGE_BODY),
+    );
   });
 
   it('renders a system row in the transcript under a visible heading', () => {
