@@ -23,6 +23,7 @@ const schedules = require('./schedules');
 const superagent = require('./superagent');
 const skills = require('./skills');
 const workspace = require('./workspace');
+const workspacePublish = require('./files/publish')();
 const balance = require('./balance');
 const actions = require('./actions');
 const apiKeys = require('./apiKeys');
@@ -88,6 +89,7 @@ module.exports = {
   superagent,
   skills,
   workspace,
+  workspacePublish,
   actions,
   presets,
   balance,

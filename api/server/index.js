@@ -481,6 +481,10 @@ const startServer = async () => {
   app.use('/api/config', preAuthTenantMiddleware, optionalJwtAuth, routes.config);
   app.use('/api/assistants', routes.assistants);
   app.use('/api/files', await routes.files.initialize());
+  /* Deliberately outside the `/api/files` chain: its caller is the document MCP
+   * process, which has no browser session. It authenticates with its own shared
+   * token instead — see `api/server/routes/files/publish.js`. */
+  app.use('/api/workspace/publish', routes.workspacePublish);
   app.use(
     '/images/',
     createValidateImageRequest({

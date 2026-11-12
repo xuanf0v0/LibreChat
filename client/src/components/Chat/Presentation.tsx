@@ -5,6 +5,8 @@ import { EModelEndpoint } from 'librechat-data-provider';
 import { activeSubagentPanel, useIsSubmitting } from '@librechat/chat/react';
 import { ParentSubagentsProvider } from '~/components/Chat/Subagents/ParentSubagentsProvider';
 import useArtifactsRegistryLifetime from '~/hooks/Artifacts/useArtifactsRegistryLifetime';
+import { previewFileAtom } from '~/store/previewFile';
+import PreviewPanel from './PreviewPanel';
 import { MessageSurfaceContext } from '~/components/Chat/Messages/ui/surface';
 import DragDropWrapper from '~/components/Chat/Input/Files/DragDropWrapper';
 import UndockedArtifacts from '~/components/Artifacts/UndockedArtifacts';
@@ -121,9 +123,17 @@ export default function Presentation({
     );
   }, [conversationId, selectedSubagent]);
 
+  const previewFile = useAtomValue(previewFileAtom);
+
+  /* A produced file docks beside the conversation. It outranks the child-activity
+   * panel — the reader just asked to look at that file — but yields to an open
+   * artifact, which owns the same column while the reader is editing it. */
+  const previewElement = previewFile != null ? <PreviewPanel /> : null;
+
   /* Undocked, the pane renders into its own window: the side panel gives its
    * width back to the conversation instead of holding an empty column. */
-  const panelElement = (isUndocked ? null : artifactsElement) ?? subagentElement;
+  const panelElement =
+    (isUndocked ? null : artifactsElement) ?? previewElement ?? subagentElement;
 
   return (
     <DragDropWrapper className="bg-surface-canvas relative flex w-full grow overflow-hidden">

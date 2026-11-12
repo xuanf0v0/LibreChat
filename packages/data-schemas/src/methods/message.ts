@@ -908,6 +908,12 @@ export interface MessageMethods {
     message: Partial<IMessage> & { newMessageId?: string },
     metadata?: { context?: string },
   ): Promise<Partial<IMessage>>;
+  attachFilesToLatestMessage(params: {
+    user: string;
+    conversationId: string;
+    fileIds: string[];
+    tenantId?: string;
+  }): Promise<string | null>;
   claimSubagentTaskResult(params: {
     userId: string;
     conversationId: string;
@@ -4244,6 +4250,77 @@ export function createMessageMethods(
   /**
    * Retrieves a single message from the database.
    */
+  /**
+   * Appends file ids to the newest message of a conversation.
+   *
+   * A tool that produced a file mid-turn has no message id of its own: the
+   * assistant message is still being written. Anchoring on the conversation's
+   * newest row puts the file where the reader will look for it, and doing it in
+   * one update avoids a read-then-write race with the streaming write.
+   *
+   * Returns the message id it landed on, or null when the conversation has no
+   * message the caller owns.
+   */
+  async function attachFilesToLatestMessage(params: {
+    user: string;
+    conversationId: string;
+    fileIds: string[];
+    tenantId?: string;
+  }): Promise<string | null> {
+    const { user, conversationId, fileIds, tenantId } = params;
+    if (fileIds.length === 0) {
+      return null;
+    }
+    try {
+      const Message = mongoose.models.Message as Model<IMessage>;
+      /* A tool publishes while its own turn is still streaming, so the assistant
+       * row does not exist yet — it is written when the turn completes, which can
+       * be tens of seconds later. The turn's user row is already there, and the
+       * file card belongs to the exchange either way; prefer the assistant row
+       * when a previous turn already has one, so a follow-up file lands on the
+       * reply rather than above the prompt that asked for it. */
+      const scope = { user, conversationId, ...(tenantId != null ? { tenantId } : {}) };
+      const latest =
+        (await Message.findOne({ ...scope, isCreatedByUser: false })
+          .sort({ createdAt: -1 })
+          .select({ messageId: 1, files: 1 })
+          .lean<{ messageId: string; files?: unknown[] }>()) ??
+        (await Message.findOne({ ...scope, isCreatedByUser: true })
+          .sort({ createdAt: -1 })
+          .select({ messageId: 1, files: 1 })
+          .lean<{ messageId: string; files?: unknown[] }>());
+      if (latest == null) {
+        return null;
+      }
+
+      const File = mongoose.models.File as Model<{ file_id: string }>;
+      const files = await File.find({ file_id: { $in: fileIds } }).lean<
+        Array<Record<string, unknown>>
+      >();
+      if (files.length === 0) {
+        return null;
+      }
+
+      /** A row whose `files` is absent or empty has no array for `$addToSet` to
+       *  address, so the first publish seeds it; later ones append without
+       *  duplicating a file that was published twice. */
+      const existing = Array.isArray(latest.files) ? latest.files : [];
+      const update =
+        existing.length === 0
+          ? { $set: { files } }
+          : files.reduce<Record<string, unknown>>((acc, file, index) => {
+              acc[`$addToSet.files.${index}`] = file;
+              return acc;
+            }, {});
+
+      await Message.updateOne({ user, messageId: latest.messageId, conversationId }, update);
+      return latest.messageId;
+    } catch (err) {
+      logger.error('Error attaching files to the latest message:', err);
+      throw err;
+    }
+  }
+
   async function getMessage({ user, messageId }: { user: string; messageId: string }) {
     try {
       const Message = mongoose.models.Message as Model<IMessage>;
@@ -4473,6 +4550,7 @@ export function createMessageMethods(
     confirmBackgroundToolResultClaim,
     releaseBackgroundToolResultClaims,
     updateMessage,
+    attachFilesToLatestMessage,
     recordSubagentTaskControlReceipt,
     getSubagentTaskControlReceipt,
     getSubagentTaskControlReplay,

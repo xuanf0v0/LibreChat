@@ -1671,6 +1671,8 @@
   "com_ui_preferences_updated": "偏好设置更新成功",
   "com_ui_prev": "上一页",
   "com_ui_preview": "预览",
+  "com_ui_preview_failed": "无法加载预览，可以下载后查看。",
+  "com_ui_preview_unsupported": "该格式不支持预览，可以下载后查看。",
   "com_ui_privacy_policy": "隐私政策",
   "com_ui_privacy_policy_url": "隐私政策链接",
   "com_ui_projects": "项目",

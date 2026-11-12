@@ -1,10 +1,12 @@
 import { useMemo, useState, useCallback, memo } from 'react';
+import { useSetAtom } from 'jotai';
 import { FileContainer } from '@librechat/chat/components';
 import type { TFile, TMessage } from 'librechat-data-provider';
 import { useMessagePartsHost } from '~/Providers/MessagePartsHostContext';
 import { usesImagePreview, hydrateFileDeliveryMetadata } from '~/utils';
 import FilePreviewDialog from './FilePreviewDialog';
 import { useShareContext } from '~/Providers';
+import { previewFileAtom } from '~/store/previewFile';
 import Image from './Image';
 
 const Files = ({ message }: { message?: TMessage }) => {
@@ -22,6 +24,7 @@ const Files = ({ message }: { message?: TMessage }) => {
     return files?.filter((file) => !usesImagePreview(file)) || [];
   }, [files]);
 
+  const setPreviewFile = useSetAtom(previewFileAtom);
   const [selectedFile, setSelectedFile] = useState<Partial<TFile> | null>(null);
 
   const handleClose = useCallback((open: boolean) => {
@@ -39,7 +42,21 @@ const Files = ({ message }: { message?: TMessage }) => {
             file={file as TFile}
             buttonClassName="border-surface-user-message max-w-full bg-transparent"
             containerClassName="max-w-full"
-            onClick={() => setSelectedFile(file)}
+            onClick={() => {
+              /* A shared conversation has no file API behind it, so those keep the
+                 dialog; everywhere else the preview docks beside the chat. */
+              if (shareId != null) {
+                setSelectedFile(file);
+                return;
+              }
+              setPreviewFile({
+                file_id: file.file_id ?? '',
+                filename: file.filename ?? '',
+                ...(file.type != null ? { type: file.type } : {}),
+                ...(file.source != null ? { source: file.source } : {}),
+                ...(file.bytes != null ? { bytes: file.bytes } : {}),
+              });
+            }}
           />
         ))}
       {imageFiles.length > 0 &&

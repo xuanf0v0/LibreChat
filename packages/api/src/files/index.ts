@@ -18,6 +18,7 @@ export * from './mime';
 export * from './mistral/crud';
 export * from './ocr';
 export * from './parse';
+export * from './publish';
 export * from './preflight';
 export * from './provision';
 export * from './upload/routing';
