@@ -908,10 +908,12 @@ export interface MessageMethods {
     message: Partial<IMessage> & { newMessageId?: string },
     metadata?: { context?: string },
   ): Promise<Partial<IMessage>>;
-  attachFilesToLatestMessage(params: {
+  attachFilesToMessage(params: {
     user: string;
     conversationId: string;
     fileIds: string[];
+    /** The row the file belongs to. Omitted only when the caller has no id. */
+    messageId?: string;
     tenantId?: string;
   }): Promise<string | null>;
   claimSubagentTaskResult(params: {
@@ -4248,48 +4250,47 @@ export function createMessageMethods(
   }
 
   /**
-   * Retrieves a single message from the database.
-   */
-  /**
-   * Appends file ids to the newest message of a conversation.
+   * Appends file ids to one message of a conversation.
    *
-   * A tool that produced a file mid-turn has no message id of its own: the
-   * assistant message is still being written. Anchoring on the conversation's
-   * newest row puts the file where the reader will look for it, and doing it in
-   * one update avoids a read-then-write race with the streaming write.
+   * A tool publishes while its own turn is still streaming, so it names the
+   * assistant row the client allocated for that turn. That row is written when
+   * the turn completes, tens of seconds later, so naming an id that has no row
+   * yet seeds a placeholder carrying the files; the turn's own `saveMessage`
+   * upsert then $set-s the rest of the row and leaves `files` alone.
    *
-   * Returns the message id it landed on, or null when the conversation has no
-   * message the caller owns.
+   * Without an id the row is unknown and the conversation's newest one is used
+   * instead. That fallback lands on the previous turn's reply, because this
+   * turn's row does not exist yet, so callers that have the id must pass it.
+   *
+   * Returns the message id it landed on, or null when no row matched.
    */
-  async function attachFilesToLatestMessage(params: {
+  async function attachFilesToMessage(params: {
     user: string;
     conversationId: string;
     fileIds: string[];
+    messageId?: string;
     tenantId?: string;
   }): Promise<string | null> {
-    const { user, conversationId, fileIds, tenantId } = params;
+    const { user, conversationId, fileIds, messageId, tenantId } = params;
     if (fileIds.length === 0) {
       return null;
     }
     try {
       const Message = mongoose.models.Message as Model<IMessage>;
-      /* A tool publishes while its own turn is still streaming, so the assistant
-       * row does not exist yet — it is written when the turn completes, which can
-       * be tens of seconds later. The turn's user row is already there, and the
-       * file card belongs to the exchange either way; prefer the assistant row
-       * when a previous turn already has one, so a follow-up file lands on the
-       * reply rather than above the prompt that asked for it. */
       const scope = { user, conversationId, ...(tenantId != null ? { tenantId } : {}) };
-      const latest =
-        (await Message.findOne({ ...scope, isCreatedByUser: false })
+      const named = messageId != null && messageId !== '';
+      let latest: { messageId: string; files?: unknown[] } | null = null;
+      if (named) {
+        latest = await Message.findOne({ ...scope, messageId })
+          .select({ messageId: 1, files: 1 })
+          .lean<{ messageId: string; files?: unknown[] }>();
+      } else {
+        latest = await Message.findOne(scope)
           .sort({ createdAt: -1 })
           .select({ messageId: 1, files: 1 })
-          .lean<{ messageId: string; files?: unknown[] }>()) ??
-        (await Message.findOne({ ...scope, isCreatedByUser: true })
-          .sort({ createdAt: -1 })
-          .select({ messageId: 1, files: 1 })
-          .lean<{ messageId: string; files?: unknown[] }>());
-      if (latest == null) {
+          .lean<{ messageId: string; files?: unknown[] }>();
+      }
+      if (latest == null && !named) {
         return null;
       }
 
@@ -4304,7 +4305,7 @@ export function createMessageMethods(
       /** A row whose `files` is absent or empty has no array for `$addToSet` to
        *  address, so the first publish seeds it; later ones append without
        *  duplicating a file that was published twice. */
-      const existing = Array.isArray(latest.files) ? latest.files : [];
+      const existing = Array.isArray(latest?.files) ? latest.files : [];
       const update =
         existing.length === 0
           ? { $set: { files } }
@@ -4313,10 +4314,37 @@ export function createMessageMethods(
               return acc;
             }, {});
 
-      await Message.updateOne({ user, messageId: latest.messageId, conversationId }, update);
-      return latest.messageId;
+      const targetId = latest?.messageId ?? (messageId as string);
+      /* A named reply may not have its row yet, so it is seeded. That seeding
+       * is scoped to a conversation this user owns: the id alone proves
+       * nothing, and an upsert keyed on it would otherwise let any principal
+       * open a row inside someone else's conversation. */
+      let seeded = false;
+      if (named && latest == null) {
+        const Conversation = mongoose.models.Conversation as Model<{ conversationId: string }>;
+        const owns =
+          (await Conversation.exists({ user, conversationId, ...(tenantId != null ? { tenantId } : {}) })) !=
+          null;
+        if (!owns) {
+          return null;
+        }
+        seeded = true;
+      }
+
+      const result = await Message.updateOne(
+        { user, messageId: targetId, conversationId },
+        update,
+        /* The seed keeps mongoose's timestamps on: a row without `createdAt`
+         * sorts arbitrarily against its own turn's user message, and the
+         * transcript is ordered by that field. */
+        seeded ? { upsert: true } : undefined,
+      );
+      if (result.matchedCount === 0 && result.upsertedCount === 0) {
+        return null;
+      }
+      return targetId;
     } catch (err) {
-      logger.error('Error attaching files to the latest message:', err);
+      logger.error('Error attaching files to a message:', err);
       throw err;
     }
   }
@@ -4550,7 +4578,7 @@ export function createMessageMethods(
     confirmBackgroundToolResultClaim,
     releaseBackgroundToolResultClaims,
     updateMessage,
-    attachFilesToLatestMessage,
+    attachFilesToMessage,
     recordSubagentTaskControlReceipt,
     getSubagentTaskControlReceipt,
     getSubagentTaskControlReplay,

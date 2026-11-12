@@ -63,6 +63,7 @@ let claimBackgroundToolResults: ReturnType<
 let releaseBackgroundToolResultClaims: ReturnType<
   typeof createMessageMethods
 >['releaseBackgroundToolResultClaims'];
+let attachFilesToMessage: ReturnType<typeof createMessageMethods>['attachFilesToMessage'];
 
 function rejectUpdateArrays(beforeUpdate?: () => Promise<void>) {
   const originalFindOneAndUpdate = Message.collection.findOneAndUpdate.bind(Message.collection);
@@ -99,6 +100,7 @@ beforeAll(async () => {
   releaseSubagentTaskResultClaim = methods.releaseSubagentTaskResultClaim;
   claimBackgroundToolResults = methods.claimBackgroundToolResults;
   releaseBackgroundToolResultClaims = methods.releaseBackgroundToolResultClaims;
+  attachFilesToMessage = methods.attachFilesToMessage;
 
   await mongoose.connect(mongoUri);
   await Message.createIndexes();
@@ -6165,5 +6167,165 @@ describe('receipt batch projection epochs', () => {
       status: 'claimed',
       claim: { batchId: 'new' },
     });
+  });
+});
+
+describe('attachFilesToMessage', () => {
+  const conversationId = 'conv-attach-1';
+  const userObjectId = new mongoose.Types.ObjectId();
+  const user = userObjectId.toString();
+  const fileIdsOn = (row?: { files?: unknown[] } | null): string[] =>
+    ((row?.files ?? []) as Array<{ file_id: string }>).map((f) => f.file_id);
+  const fileRecord = (file_id: string) => ({
+    file_id,
+    filename: `${file_id}.pdf`,
+    filepath: `/images/${user}/${file_id}.pdf`,
+    type: 'application/pdf',
+    bytes: 1024,
+    user,
+    context: 'message_attachment',
+    source: 'local',
+  });
+
+  beforeEach(async () => {
+    await Message.deleteMany({ conversationId });
+    await mongoose.models.File.deleteMany({ user: userObjectId });
+    await mongoose.models.Conversation.deleteMany({ conversationId });
+    await mongoose.models.Conversation.create({
+      conversationId,
+      user,
+      title: 'attach',
+      endpoint: 'agents',
+    });
+    await Message.create([
+      {
+        messageId: 'prev-user',
+        conversationId,
+        user,
+        isCreatedByUser: true,
+        text: 'ask',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+      },
+      {
+        messageId: 'prev-assistant',
+        conversationId,
+        user,
+        isCreatedByUser: false,
+        text: 'reply',
+        createdAt: new Date('2026-01-01T00:00:05Z'),
+      },
+    ]);
+  });
+
+  it('appends to the named row even when it is not the newest', async () => {
+    await Message.create({
+      messageId: 'newer-user',
+      conversationId,
+      user,
+      isCreatedByUser: true,
+      text: 'second ask',
+      createdAt: new Date('2026-01-01T00:01:00Z'),
+    });
+    await mongoose.models.File.create(fileRecord('f-1'));
+
+    const landed = await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-1'],
+      messageId: 'prev-assistant',
+    });
+
+    expect(landed).toBe('prev-assistant');
+    const target = await Message.findOne({ messageId: 'prev-assistant' }).lean();
+    expect(fileIdsOn(target)).toEqual(['f-1']);
+    const newest = await Message.findOne({ messageId: 'newer-user' }).lean();
+    expect(fileIdsOn(newest)).toHaveLength(0);
+  });
+
+  it('falls back to the newest row when no id is named', async () => {
+    await mongoose.models.File.create(fileRecord('f-2'));
+
+    const landed = await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-2'],
+    });
+
+    expect(landed).toBe('prev-assistant');
+    const target = await Message.findOne({ messageId: 'prev-assistant' }).lean();
+    expect(fileIdsOn(target)).toEqual(['f-2']);
+  });
+
+  it('does not duplicate a file appended twice', async () => {
+    await mongoose.models.File.create(fileRecord('f-3'));
+
+    await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-3'],
+      messageId: 'prev-assistant',
+    });
+    await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-3'],
+      messageId: 'prev-assistant',
+    });
+
+    const target = await Message.findOne({ messageId: 'prev-assistant' }).lean();
+    expect(fileIdsOn(target)).toEqual(['f-3']);
+  });
+
+  it('seeds a placeholder row when the named reply has not been written yet', async () => {
+    await mongoose.models.File.create(fileRecord('f-5'));
+
+    const landed = await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-5'],
+      messageId: 'reply-not-written',
+    });
+
+    expect(landed).toBe('reply-not-written');
+    const seeded = await Message.findOne({ messageId: 'reply-not-written' }).lean();
+    expect(fileIdsOn(seeded)).toEqual(['f-5']);
+    /** The transcript orders by `createdAt`; a seed without one sorts against
+     *  its own turn's prompt. */
+    expect(seeded?.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('keeps the seeded files when the reply row is written afterwards', async () => {
+    await mongoose.models.File.create(fileRecord('f-6'));
+    await attachFilesToMessage({
+      user,
+      conversationId,
+      fileIds: ['f-6'],
+      messageId: 'reply-later',
+    });
+
+    /** The turn's own write $set-s the rest of the row and must leave `files`
+     *  alone, or a file published mid-turn would vanish when the reply lands. */
+    await Message.updateOne(
+      { user, messageId: 'reply-later', conversationId },
+      { $set: { text: 'the reply body', isCreatedByUser: false } },
+    );
+
+    const saved = await Message.findOne({ messageId: 'reply-later' }).lean();
+    expect(saved?.text).toBe('the reply body');
+    expect(fileIdsOn(saved)).toEqual(['f-6']);
+  });
+
+  it("refuses to seed a row in another user's conversation", async () => {
+    await mongoose.models.File.create(fileRecord('f-4'));
+
+    const landed = await attachFilesToMessage({
+      user: 'someone-else',
+      conversationId,
+      fileIds: ['f-4'],
+      messageId: 'intruder-row',
+    });
+
+    expect(landed).toBeNull();
+    expect(await Message.findOne({ messageId: 'intruder-row' }).lean()).toBeNull();
   });
 });

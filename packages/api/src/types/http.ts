@@ -17,6 +17,8 @@ import type { ResolvedChatProjectContext } from '../projects/context';
  */
 export type RequestBody = {
   messageId?: string;
+  /** The row this turn's reply will be written to; allocated before the run. */
+  responseMessageId?: string;
   fileTokenLimit?: number;
   conversationId?: string;
   parentMessageId?: string;

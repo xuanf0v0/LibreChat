@@ -1,6 +1,6 @@
 const express = require('express');
 const { logger } = require('@librechat/data-schemas');
-const { publishWorkspaceFile, contentTypeFor } = require('@librechat/api');
+const { publishWorkspaceFile, contentTypeFor, GenerationJobManager } = require('@librechat/api');
 const { loadCustomConfig } = require('~/server/services/Config');
 const { resolveWorkspaceRoots, isWithinRoots } = require('@librechat/api');
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
@@ -49,6 +49,31 @@ function tokenMatches(expected, provided) {
     diff |= expected.charCodeAt(index) ^ provided.charCodeAt(index);
   }
   return diff === 0;
+}
+
+/**
+ * The reply row this turn is writing to, or null when no run is in flight.
+ *
+ * A tool publishes while its own turn is still streaming, so the assistant row
+ * does not exist yet — it is written when the turn completes. The run's job does
+ * exist and already names that row: `streamId` is the conversation id, and the
+ * job carries the `responseMessageId` the client allocated before the run
+ * started. Reading it here is what keeps a produced file on the reply that made
+ * it; guessing from the conversation's newest row lands on the previous turn.
+ */
+async function resolveResponseMessageId(conversationId) {
+  try {
+    const job = await GenerationJobManager.getJob(conversationId);
+    /* The run keeps it under `metadata`; the top level carries the stream's own
+     * bookkeeping and would read as absent. */
+    const responseMessageId = job?.metadata?.responseMessageId;
+    return typeof responseMessageId === 'string' && responseMessageId !== ''
+      ? responseMessageId
+      : null;
+  } catch (error) {
+    logger.warn(`[publish] could not read the active run for ${conversationId}: ${error.message}`);
+    return null;
+  }
 }
 
 module.exports = function publishRoutes() {
@@ -108,20 +133,22 @@ module.exports = function publishRoutes() {
       return res.status(status).json({ error: result.error.code });
     }
 
-    /* Put the card on the message the reader is looking at. The assistant row is
-     * still streaming when a tool publishes, so the conversation's newest row is
-     * the anchor; without this the file exists but nothing in the transcript
-     * points at it. A missing conversation is not an error — the file is
-     * registered either way. */
+    /* Put the card on the row this turn is writing to. Without a resolved row the
+     * file is still registered, just unplaced: appending it to the conversation's
+     * newest row would put it on the previous turn's reply, which reads as "the
+     * file is gone". A missing conversation is not an error either. */
     const conversationId =
       typeof req.body?.conversationId === 'string' ? req.body.conversationId.trim() : '';
+    const messageId =
+      conversationId === '' ? null : await resolveResponseMessageId(conversationId);
     let attachedTo = null;
-    if (conversationId !== '' && typeof db.attachFilesToLatestMessage === 'function') {
+    if (messageId != null && typeof db.attachFilesToMessage === 'function') {
       try {
-        attachedTo = await db.attachFilesToLatestMessage({
+        attachedTo = await db.attachFilesToMessage({
           user: userId,
           conversationId,
           fileIds: [result.value.file_id],
+          messageId,
           ...(req.user?.tenantId != null ? { tenantId: req.user.tenantId } : {}),
         });
       } catch (error) {
