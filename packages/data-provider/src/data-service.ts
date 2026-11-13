@@ -1573,6 +1573,14 @@ export function getWorkspaceEntries(path?: string | null): Promise<WorkspaceList
   return request.get(endpoints.workspaceEntries(path));
 }
 
+/** Directories whose name matches, for resolving a natively picked folder. */
+export async function findWorkspaceDirectories(name: string): Promise<WorkspaceEntry[]> {
+  const result = (await request.get(`${endpoints.workspace()}/find`, {
+    params: { name },
+  })) as { matches?: WorkspaceEntry[] };
+  return result.matches ?? [];
+}
+
 /** Creates one folder inside those roots and returns its (empty) listing. */
 export function createWorkspaceFolder(payload: {
   path?: string | null;

@@ -139,6 +139,73 @@ export function isWithinRoots(target: string, roots: readonly string[]): boolean
   });
 }
 
+/** Where a search for a folder name starts when no fence is configured. */
+const SEARCH_DEPTH = 4;
+const SEARCH_BUDGET = 4000;
+
+/**
+ * Candidate directories whose name matches `name`.
+ *
+ * A browser's directory picker returns only the leaf name, so the path has to
+ * be found again on the server. This walks a bounded slice of the filesystem
+ * and reports every match rather than picking one: two folders can share a
+ * name, and choosing for the reader would put their files somewhere they did
+ * not pick.
+ */
+export async function findWorkspaceDirectories(
+  name: string,
+  roots: readonly string[],
+): Promise<WorkspaceResult<WorkspaceEntry[]>> {
+  const wanted = name.trim();
+  if (wanted === '' || !isPlainName(wanted)) {
+    return { ok: false, error: { code: 'invalid_path' } };
+  }
+
+  const starts = roots.length > 0 ? roots : [process.cwd()];
+  const matches: WorkspaceEntry[] = [];
+  let visited = 0;
+
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (depth > SEARCH_DEPTH || visited > SEARCH_BUDGET) {
+      return;
+    }
+    let dirents;
+    try {
+      dirents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      /** Unreadable directories are skipped, not fatal: the walk crosses
+       *  system paths the account cannot list. */
+      return;
+    }
+    for (const dirent of dirents) {
+      if (!dirent.isDirectory()) {
+        continue;
+      }
+      visited += 1;
+      if (visited > SEARCH_BUDGET) {
+        return;
+      }
+      const child = path.join(dir, dirent.name);
+      if (dirent.name.toLowerCase() === wanted.toLowerCase()) {
+        matches.push({
+          name: dirent.name,
+          path: child,
+          type: 'directory',
+          size: null,
+          modifiedAt: null,
+        });
+      }
+      await walk(child, depth + 1);
+    }
+  };
+
+  for (const start of starts) {
+    await walk(path.resolve(start), 0);
+  }
+
+  return { ok: true, value: matches };
+}
+
 function toError(error: unknown): WorkspaceResult<never> {
   const code = (error as NodeJS.ErrnoException | undefined)?.code;
   if (code === 'ENOENT') {

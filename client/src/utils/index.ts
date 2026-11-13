@@ -23,6 +23,7 @@ export * from './roles';
 export * from './errors';
 export * from './promptErrors';
 export * from './agents';
+export * from './workspace';
 export * from './drafts';
 export * from './convos';
 export * from './queue';

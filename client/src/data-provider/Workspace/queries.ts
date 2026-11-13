@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { QueryKeys, dataService } from 'librechat-data-provider';
-import type { WorkspaceListing } from 'librechat-data-provider';
+import type { WorkspaceEntry, WorkspaceListing } from 'librechat-data-provider';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 /** The roots the picker may browse. A deployment with no filesystem MCP server
@@ -31,6 +31,28 @@ export const useWorkspaceEntriesQuery = (
     {
       refetchOnWindowFocus: false,
       staleTime: 30 * 1000,
+      ...config,
+    },
+  );
+};
+
+/** Directories whose name matches, for resolving a natively picked folder. */
+export const useWorkspaceFindQuery = (
+  name: string | null,
+  config?: UseQueryOptions<WorkspaceEntry[] | null, unknown>,
+) => {
+  return useQuery<WorkspaceEntry[] | null, unknown>(
+    [QueryKeys.workspace, 'find', name ?? ''],
+    async () => {
+      if (name == null || name.trim() === '') {
+        return null;
+      }
+      return dataService.findWorkspaceDirectories(name);
+    },
+    {
+      refetchOnWindowFocus: false,
+      retry: false,
+      staleTime: 60 * 1000,
       ...config,
     },
   );

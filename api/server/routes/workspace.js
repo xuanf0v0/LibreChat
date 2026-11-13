@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   createWorkspaceDirectory,
+  findWorkspaceDirectories,
   listWorkspaceDirectory,
   resolveWorkspaceRoots,
 } = require('@librechat/api');
@@ -54,6 +55,28 @@ router.get('/entries', requireJwtAuth, async (req, res) => {
   }
 
   res.json(result.value);
+});
+
+/**
+ * Finds directories by name.
+ *
+ * The browser's own directory picker returns only the leaf name, so a folder
+ * chosen natively has to be located again here. Every match is returned rather
+ * than the first: two folders can share a name, and picking one for the reader
+ * would aim their workspace at files they did not choose.
+ */
+router.get('/find', requireJwtAuth, async (req, res) => {
+  const roots = await rootsForRequest();
+  const name = typeof req.query.name === 'string' ? req.query.name : '';
+
+  const result = await findWorkspaceDirectories(name, roots);
+  if (!result.ok) {
+    return res.status(result.error.code === 'invalid_path' ? 400 : 404).json({
+      error: result.error.code,
+    });
+  }
+
+  res.json({ matches: result.value });
 });
 
 /**

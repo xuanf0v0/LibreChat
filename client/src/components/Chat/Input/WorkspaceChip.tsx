@@ -3,6 +3,8 @@ import { useAtom } from 'jotai';
 import { FolderOpen, FileText, X } from 'lucide-react';
 import { Button } from '@librechat/client';
 import { workspaceFileAtom, workspacePathAtom, workspacePickerOpenAtom } from '~/store/workspace';
+import { dataService } from 'librechat-data-provider';
+import { pickWorkspaceDirectory } from '~/utils/workspace';
 import WorkspacePickerDialog from './WorkspacePickerDialog';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -53,6 +55,42 @@ export default function WorkspaceChip({ disabled }: { disabled?: boolean }) {
     [setPickerOpen],
   );
 
+  /** Ask the browser for a folder first.
+   *
+   * The native dialog is the interaction the reader expects, and a desktop
+   * runtime answers with a real path. A plain browser returns only the leaf
+   * name, so that name is looked up on the server: one match is adopted, and
+   * anything else (none, or several) falls through to the browsable dialog
+   * rather than guessing which folder was meant.
+   */
+  const pickNatively = useCallback(async () => {
+    if (disabled) {
+      return;
+    }
+    const picked = await pickWorkspaceDirectory();
+    if (picked.status === 'dismissed') {
+      return;
+    }
+    if (picked.status === 'unsupported') {
+      /** No native dialog in this runtime; the browsable one is the only way
+       *  to name a real path. */
+      setPickerOpen(true);
+      return;
+    }
+    if (picked.path != null) {
+      setWorkspacePath(picked.path);
+      setWorkspaceFile(null);
+      return;
+    }
+    const matches = await dataService.findWorkspaceDirectories(picked.name);
+    if (matches.length === 1) {
+      setWorkspacePath(matches[0].path);
+      setWorkspaceFile(null);
+      return;
+    }
+    setPickerOpen(true);
+  }, [disabled, setPickerOpen, setWorkspaceFile, setWorkspacePath]);
+
   const label = workspaceFile ?? workspacePath;
 
   return (
@@ -71,7 +109,7 @@ export default function WorkspaceChip({ disabled }: { disabled?: boolean }) {
           ref={triggerRef}
           type="button"
           disabled={disabled}
-          onClick={() => setPickerOpen(true)}
+          onClick={() => void pickNatively()}
           className={cn(
             'text-text-secondary hover:text-text-primary flex min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 text-xs',
             disabled && 'cursor-not-allowed opacity-60',

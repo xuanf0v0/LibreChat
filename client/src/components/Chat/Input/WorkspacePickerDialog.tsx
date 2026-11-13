@@ -68,9 +68,12 @@ export default function WorkspacePickerDialog({
 
   const { data: rootsData, isLoading: rootsLoading } = useWorkspaceRootsQuery({ enabled: open });
   const roots = rootsData?.roots ?? [];
+  /* An empty root list is a policy ("the account's permissions are the
+   *  boundary"), not a missing configuration: the endpoint then answers with the
+   *  server's own directory, so the listing must still run. */
   const { data: listing, isLoading: entriesLoading, error } = useWorkspaceEntriesQuery(
     currentPath,
-    { enabled: open && roots.length > 0 },
+    { enabled: open },
   );
 
   /** Open on the first root rather than an empty view; a root list that arrives
@@ -145,7 +148,7 @@ export default function WorkspacePickerDialog({
   );
 
   const entries = listing?.entries ?? [];
-  const notConfigured = !rootsLoading && roots.length === 0;
+  const notConfigured = false;
   const activeRoot =
     currentPath == null ? null : (roots.find((root) => isOnRoot(currentPath, root)) ?? null);
 
