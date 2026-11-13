@@ -4545,6 +4545,24 @@ export const configSchema = z.object({
   includedTools: z.array(z.string()).optional(),
   filteredTools: z.array(z.string()).optional(),
   mcpServers: MCPServersSchema.optional(),
+  /**
+   * What the composer's workspace picker may browse, and what the publish
+   * endpoint accepts.
+   *
+   * `unrestricted` (the default here) leaves the process's own permissions as
+   * the boundary, which is how a locally launched agent reads a disk: there is
+   * no fence to configure, only the account's rights. `roots` narrows both to
+   * the listed directories, and is what a shared deployment wants.
+   *
+   * Absent means `unrestricted`, so an existing config keeps working and the
+   * picker stops refusing paths outside the MCP server's startup arguments.
+   */
+  workspace: z
+    .object({
+      mode: z.enum(['unrestricted', 'roots']).default('unrestricted'),
+      roots: z.array(z.string()).optional(),
+    })
+    .optional(),
   mcpAppSandbox: z
     .object({
       url: z

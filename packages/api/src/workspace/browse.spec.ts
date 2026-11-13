@@ -54,6 +54,11 @@ describe('isWithinRoots', () => {
   it('rejects traversal out of the root', () => {
     expect(isWithinRoots('/data/workspace/../secrets', roots)).toBe(false);
   });
+
+  it('treats an empty root list as no fence rather than a locked door', () => {
+    expect(isWithinRoots('/data/workspace/nested/file.txt', [])).toBe(true);
+    expect(isWithinRoots(path.resolve('/'), [])).toBe(true);
+  });
 });
 
 describe('listWorkspaceDirectory', () => {
@@ -105,11 +110,12 @@ describe('listWorkspaceDirectory', () => {
     expect(result).toEqual({ ok: false, error: { code: 'not_found' } });
   });
 
-  it('reports unconfigured roots distinctly from an empty directory', async () => {
-    expect(await listWorkspaceDirectory(undefined, [])).toEqual({
-      ok: false,
-      error: { code: 'not_configured' },
-    });
+  it('opens on the process directory when no fence is configured', async () => {
+    const result = await listWorkspaceDirectory(undefined, []);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.path).toBe(path.resolve(process.cwd()));
+    }
   });
 
   it('offers a parent only while it stays inside the roots', async () => {
@@ -167,11 +173,14 @@ describe('createWorkspaceDirectory', () => {
     });
   });
 
-  it('reports unconfigured roots distinctly', async () => {
-    expect(await createWorkspaceDirectory(root, 'x', [])).toEqual({
-      ok: false,
-      error: { code: 'not_configured' },
-    });
+  it('creates a folder under the process directory when no fence is configured', async () => {
+    const name = `unfenced-${Date.now()}`;
+    const created = await createWorkspaceDirectory(process.cwd(), name, []);
+    expect(created.ok).toBe(true);
+    if (created.ok) {
+      expect(created.value.path).toBe(path.join(path.resolve(process.cwd()), name));
+      await fs.rm(created.value.path, { recursive: true, force: true });
+    }
   });
 });
 
@@ -199,5 +208,51 @@ describe('isWithinRoots with a drive root', () => {
 
   it('still refuses a sibling that shares a name prefix', () => {
     expect(isWithinRoots('/data/workspace-evil', ['/data/workspace'])).toBe(false);
+  });
+});
+
+describe('resolveWorkspaceRoots', () => {
+  it('reads the fence from the workspace block, not the MCP arguments', () => {
+    const config = {
+      workspace: { mode: 'roots' as const, roots: ['/data/a', '/data/b', '/data/a'] },
+      mcpServers: {
+        filesystem: {
+          type: 'stdio' as const,
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:\\'],
+        },
+      },
+    };
+    expect(resolveWorkspaceRoots(config)).toEqual([
+      path.resolve('/data/a'),
+      path.resolve('/data/b'),
+    ]);
+  });
+
+  it('reports no fence when the operator asked for unrestricted', () => {
+    const config = {
+      workspace: { mode: 'unrestricted' as const },
+      mcpServers: {
+        filesystem: {
+          type: 'stdio' as const,
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:\\'],
+        },
+      },
+    };
+    expect(resolveWorkspaceRoots(config)).toEqual([]);
+  });
+
+  it('falls back to the MCP arguments when the block is absent', () => {
+    const config = {
+      mcpServers: {
+        filesystem: {
+          type: 'stdio' as const,
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:\\'],
+        },
+      },
+    };
+    expect(resolveWorkspaceRoots(config)).toEqual([path.resolve('C:\\')]);
   });
 });

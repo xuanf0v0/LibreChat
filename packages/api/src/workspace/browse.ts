@@ -21,6 +21,11 @@ import type { MCPOptions } from 'librechat-data-provider';
 /** The shape this module reads: the deployment's MCP server map. */
 interface WorkspaceConfig {
   mcpServers?: Record<string, MCPOptions>;
+  /** The operator's fence for the picker and the publish endpoint. */
+  workspace?: {
+    mode?: 'unrestricted' | 'roots';
+    roots?: string[];
+  };
 }
 
 /** One entry in a listed directory. */
@@ -65,8 +70,22 @@ const MAX_ENTRIES = 500;
  * `args` is `['-y', '@modelcontextprotocol/server-filesystem', ...roots]` for
  * the stdio server, so everything after the package name is a root. Other MCP
  * servers, and any filesystem server without roots, contribute nothing.
+ *
+ * An empty result means the deployment did not fence anything, and the process
+ * permission is the boundary — the picker then opens on `process.cwd()` and may
+ * browse anywhere the server can read.
  */
 export function resolveWorkspaceRoots(appConfig: WorkspaceConfig | null | undefined): string[] {
+  /** An explicit `roots` mode is the whole answer: the operator named the
+   *  directories, so the MCP server's startup arguments are irrelevant. */
+  const fence = appConfig?.workspace;
+  if (fence?.mode === 'roots') {
+    return [...new Set((fence.roots ?? []).map((root) => path.resolve(root)))];
+  }
+  if (fence?.mode === 'unrestricted') {
+    return [];
+  }
+
   const servers = appConfig?.mcpServers;
   if (servers == null || typeof servers !== 'object') {
     return [];
@@ -103,6 +122,12 @@ export function resolveWorkspaceRoots(appConfig: WorkspaceConfig | null | undefi
  * keeps it rather than gaining a second.
  */
 export function isWithinRoots(target: string, roots: readonly string[]): boolean {
+  /** An empty root list is "no configured fence", not "nothing is reachable":
+   *  the deployment asked for the process's own permissions to be the boundary,
+   *  which is how a local agent reads a disk. A non-empty list still fences. */
+  if (roots.length === 0) {
+    return true;
+  }
   const resolved = path.resolve(target);
   return roots.some((root) => {
     const normalizedRoot = path.resolve(root);
@@ -138,11 +163,9 @@ export async function listWorkspaceDirectory(
   requested: string | undefined,
   roots: readonly string[],
 ): Promise<WorkspaceResult<WorkspaceListing>> {
-  if (roots.length === 0) {
-    return { ok: false, error: { code: 'not_configured' } };
-  }
-
-  const target = path.resolve(requested?.trim() ? requested : roots[0]);
+  /** With no configured fence the picker opens on the process's own directory,
+   *  which is where a locally launched agent would already be. */
+  const target = path.resolve(requested?.trim() ? requested : (roots[0] ?? process.cwd()));
   if (!isWithinRoots(target, roots)) {
     return { ok: false, error: { code: 'outside_roots' } };
   }
@@ -226,11 +249,7 @@ export async function createWorkspaceDirectory(
   name: string | undefined,
   roots: readonly string[],
 ): Promise<WorkspaceResult<WorkspaceListing>> {
-  if (roots.length === 0) {
-    return { ok: false, error: { code: 'not_configured' } };
-  }
-
-  const base = path.resolve(parent?.trim() ? parent : roots[0]);
+  const base = path.resolve(parent?.trim() ? parent : (roots[0] ?? process.cwd()));
   if (!isWithinRoots(base, roots)) {
     return { ok: false, error: { code: 'outside_roots' } };
   }
